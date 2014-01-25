@@ -44,16 +44,16 @@ func main() {
 	}
 	logging.Info(fmt.Sprintf("Connected to irc server as %s", cfg.Irc.Nick))
 
-    // Trap interrupt signal so we can cleanly disconnect on fail
+	// Trap interrupt signal so we can cleanly disconnect on fail
 	trap := make(chan os.Signal, 1)
-    signal.Notify(trap, os.Interrupt)
+	signal.Notify(trap, os.Interrupt)
 
-    go func(){
-        for sig := range trap {
-            c.Quit(fmt.Sprintf("Goodbye (%s)", sig))
-            quit <- true
-        }
-    }()
+	go func() {
+		for sig := range trap {
+			c.Quit(fmt.Sprintf("Goodbye (%s)", sig))
+			quit <- true
+		}
+	}()
 
 	// Wait for disconnect
 	<-quit
