@@ -3,10 +3,11 @@ package main
 import (
 	"fmt"
 	"github.com/darkliquid/leader1/config"
-	irc "github.com/fluffle/goirc/client"
+	irc "github.com/darkliquid/goirc/client"
 	"github.com/fluffle/golog/logging"
 	"os"
 	"os/signal"
+	"time"
 )
 
 var client *irc.Conn
@@ -20,6 +21,9 @@ func main() {
 
 	// Set up Irc Client
 	client = irc.SimpleClient(cfg.Irc.Nick, "leader-1", "A mighty, mighty Go Bot")
+
+	// Set client timeout to 1 second
+	client.Timeout = time.Second
 
 	// Track the state of various things
 	client.EnableStateTracking()
@@ -55,14 +59,16 @@ func main() {
 	// concurrent handler for trapping SIGINT
 	go func() {
 		for sig := range trap {
+		    really_quit = true
 			client.Quit(fmt.Sprintf("Goodbye (%s)", sig))
-			really_quit = true
 		}
 	}()
 
 	for !really_quit {
 		// connect to server
 		logging.Info(fmt.Sprintf("Connection to %s:%s", cfg.Irc.Host, cfg.Irc.Port))
+
+		// This connection blocks for an unknown number of seconds based on the system settings
 		if err := client.Connect(cfg.Irc.Host + ":" + cfg.Irc.Port); err != nil {
 			// At the moment, just fail, but ideally we will retry until a maximum number of failures is exceeded
 			connection_failures++

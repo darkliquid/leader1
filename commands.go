@@ -3,7 +3,7 @@ package main
 import (
 	"fmt"
 	"github.com/darkliquid/leader1/commands"
-	irc "github.com/fluffle/goirc/client"
+	irc "github.com/darkliquid/goirc/client"
 	"github.com/fluffle/golog/logging"
 	"strings"
 )
@@ -28,8 +28,16 @@ func priv_msg_handler(conn *irc.Conn, line *irc.Line) {
 
 		// Switch on the firts part of the line (i.e. the actual command)
 		switch args[0] {
-		case "!not_a_ping":
-			commands.NotAPing(conn, line, target)
+		case "!ping":
+			commands.Ping(conn, line, target)
+		case "!lmgtfy":
+		    commands.LMGTFY(conn, line, target, strings.Join(args[1:], " "))
+		case "!urban":
+		    commands.UrbanDictionary(conn, line, target, strings.Join(args[1:], " "))
+		case "!time":
+		    commands.Time(conn, line, target)
+		case "!g3song":
+		    commands.G3Song(conn, line, target)
 		}
 	}
 }
