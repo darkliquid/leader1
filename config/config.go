@@ -16,6 +16,7 @@ type IrcSettings struct {
 	Pass     string
 	Ssl      bool
 	Channels []string
+	MaxFailures int
 }
 
 type DbSettings struct {

@@ -9,6 +9,8 @@ import (
 	"os/signal"
 )
 
+var client *irc.Conn
+
 func main() {
 	// Load our configuration
 	config.Load()
@@ -17,13 +19,16 @@ func main() {
 	cfg := config.Config
 
 	// Set up Irc Client
-	c := irc.SimpleClient(cfg.Irc.Nick)
+	client = irc.SimpleClient(cfg.Irc.Nick, "leader-1", "A mighty, mighty Go Bot")
+
+	// Track the state of various things
+	client.EnableStateTracking()
 
 	// Optionally, enable SSL
-	c.SSL = cfg.Irc.Ssl
+	client.SSL = cfg.Irc.Ssl
 
 	// Join channels on connect
-	c.AddHandler(irc.CONNECTED, func(conn *irc.Conn, line *irc.Line) {
+	client.AddHandler(irc.CONNECTED, func(conn *irc.Conn, line *irc.Line) {
 		for _, channel := range cfg.Irc.Channels {
 			conn.Join(channel)
 			logging.Info(fmt.Sprintf("Joining channel %s", channel))
@@ -32,29 +37,45 @@ func main() {
 
 	// And a signal on disconnect
 	quit := make(chan bool)
-	c.AddHandler(irc.DISCONNECTED,
-		func(conn *irc.Conn, line *irc.Line) { quit <- true })
+	client.AddHandler(irc.DISCONNECTED, func(conn *irc.Conn, line *irc.Line) { quit <- true })
 
-	logging.Info(fmt.Sprintf("Connection to %s:%s", cfg.Irc.Host, cfg.Irc.Port))
-
-	// Tell client to connect
-	if err := c.Connect(cfg.Irc.Host + ":" + cfg.Irc.Port); err != nil {
-		// At the moment, just fail, but ideally we will retry until a maximum number of failures is exceeded
-		logging.Fatal(fmt.Sprintf("Connection error: %s\n", err.Error()))
-	}
-	logging.Info(fmt.Sprintf("Connected to irc server as %s", cfg.Irc.Nick))
+	// Register commands
+	RegisterCommands()
 
 	// Trap interrupt signal so we can cleanly disconnect on fail
 	trap := make(chan os.Signal, 1)
 	signal.Notify(trap, os.Interrupt)
 
+	// Var we check to see if we want to actually quit the app
+	really_quit := false
+
+	// Setup connection failure count
+	connection_failures := 0
+
+	// concurrent handler for trapping SIGINT
 	go func() {
 		for sig := range trap {
-			c.Quit(fmt.Sprintf("Goodbye (%s)", sig))
-			quit <- true
+			client.Quit(fmt.Sprintf("Goodbye (%s)", sig))
+			really_quit = true
 		}
 	}()
 
-	// Wait for disconnect
-	<-quit
+	for !really_quit {
+		// connect to server
+		logging.Info(fmt.Sprintf("Connection to %s:%s", cfg.Irc.Host, cfg.Irc.Port))
+		if err := client.Connect(cfg.Irc.Host + ":" + cfg.Irc.Port); err != nil {
+			// At the moment, just fail, but ideally we will retry until a maximum number of failures is exceeded
+			connection_failures++
+			if connection_failures > cfg.Irc.MaxFailures {
+				really_quit = true
+			}
+			quit <- true
+		} else {
+			logging.Info(fmt.Sprintf("Connected to irc server as %s", cfg.Irc.Nick))
+			connection_failures = 0
+		}
+
+		// wait on quit channel
+		<-quit
+	}
 }
