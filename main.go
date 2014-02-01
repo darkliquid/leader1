@@ -47,6 +47,9 @@ func main() {
 	// Hook into PING handler for doing periodic checks when the server pings us
 	client.AddHandler("PING", JoinChannels) // Make sure we have joined the relevant channels
 
+	// Handle JOIN events for doing AutoVoice
+	client.AddHandler("JOIN", AutoVoice) // Make sure new users are voiced
+
 	// And a signal on disconnect
 	quit := make(chan bool)
 	client.AddHandler(irc.DISCONNECTED, func(conn *irc.Conn, line *irc.Line) { quit <- true })

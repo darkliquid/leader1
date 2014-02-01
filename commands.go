@@ -34,30 +34,32 @@ func privMsgHandler(conn *irc.Conn, line *irc.Line) {
 
 		logging.Debug(fmt.Sprintf("Got ! command \"%s\" with args %#v", args[0], args[1:]))
 
-		// Switch on the firts part of the line (i.e. the actual command)
-		switch args[0] {
-		case "!ping":
+		// Switch on the first part of the line (i.e. the actual command)
+		switch {
+		case args[0] == "!ping":
 			commands.Ping(conn, line, target)
-		case "!lmgtfy":
+		case args[0] == "!lmgtfy" && len(args) > 1:
 			commands.LMGTFY(conn, line, target, strings.Join(args[1:], " "))
-		case "!urban":
+		case args[0] == "!urban" && len(args) > 1:
 			commands.UrbanDictionary(conn, line, target, strings.Join(args[1:], " "))
-		case "!time":
+		case args[0] == "!time":
 			commands.Time(conn, line, target)
-		case "!g3song":
+		case args[0] == "!g3song":
 			commands.G3Song(conn, line, target)
-		case "!listeners":
+		case args[0] == "!listeners":
 			commands.Listeners(conn, line, target)
-		case "!+":
+		case args[0] == "!+":
 			commands.LikeTrack(conn, line, target)
-		case "!-":
+		case args[0] == "!-":
 			commands.HateTrack(conn, line, target)
-		case "!request":
+		case args[0] == "!request" && len(args) > 1:
 			commands.Request(conn, line, target, strings.Join(args[1:], " "))
-		case "!announce":
-			commands.Announce(conn, line, target, strings.Join(args[1:], " "))
-		case "!invite":
+		case args[0] == "!announce" && len(args) > 1:
+			commands.Announce(conn, line, target, strings.Join(args[1:], " ")) // ops
+		case args[0] == "!invite" && len(args) > 1:
 			commands.Invite(conn, line, target, args[1:])
+		case args[0] == "!autovoice" && len(args) > 1:
+			commands.AutoVoice(conn, line, target, args[1])
 		}
 	}
 }

@@ -20,6 +20,15 @@ func ReclaimNick(conn *irc.Conn, line *irc.Line) {
 	SetBotState()
 }
 
+// Automatically give voice to users in channels in which the bot has Op
+func AutoVoice(conn *irc.Conn, line *irc.Line) {
+	if config.Config.Irc.AutoVoice {
+		target := line.Args[0]
+		logging.Debug(fmt.Sprintf("Auto Voicing %s on channel %s", line.Nick, target))
+		conn.Mode(target, fmt.Sprintf("+v %s", line.Nick))
+	}
+}
+
 // Function for setting up the botstate
 func SetBotState() {
 	cfg := config.Config

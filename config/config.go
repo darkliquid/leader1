@@ -10,16 +10,17 @@ import (
 )
 
 type IrcSettings struct {
-	Host     string
-	Port     string
-	Nick     string
-	NickPass string
-	Pass     string
-	Ssl      bool
+	Host          string
+	Port          string
+	Nick          string
+	NickPass      string
+	Pass          string
+	Ssl           bool
 	NormalChannel string `json:"normal_channel"`
-	StaffChannel string `json:"staff_channel"`
-	MaxFailures int
-	Timeout int
+	StaffChannel  string `json:"staff_channel"`
+	MaxFailures   int
+	Timeout       int
+	AutoVoice     bool
 }
 
 type DbSettings struct {

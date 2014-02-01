@@ -11,6 +11,6 @@ import (
 // Accepts target for being able to respond back to the same place the command was sent to
 // Accepts query as the search term
 func LMGTFY(conn *irc.Conn, line *irc.Line, target string, query string) {
-    url := "http://lmgtfy.com/?q=" + url.QueryEscape(query)
+	url := "http://lmgtfy.com/?q=" + url.QueryEscape(query)
 	conn.Privmsg(target, fmt.Sprintf("%s: Let me google that for you - %s", line.Nick, url))
 }

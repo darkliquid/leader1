@@ -3,10 +3,10 @@ package commands
 import (
 	"fmt"
 	irc "github.com/darkliquid/goirc/client"
-	"github.com/fluffle/golog/logging"
 	"github.com/darkliquid/leader1/config"
-	"time"
 	"github.com/darkliquid/leader1/database"
+	"github.com/fluffle/golog/logging"
+	"time"
 )
 
 // Accepts conn so we can use the client to respond,
