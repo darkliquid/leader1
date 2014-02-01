@@ -1,0 +1,41 @@
+package main
+
+import (
+	"fmt"
+	irc "github.com/darkliquid/goirc/client"
+	"github.com/darkliquid/leader1/config"
+	"github.com/fluffle/golog/logging"
+)
+
+// Handler for reclaiming a stolen nick
+func ReclaimNick(conn *irc.Conn, line *irc.Line) {
+	cfg := config.Config
+
+	if thief := client.ST.GetNick(cfg.Irc.Nick); thief != nil {
+		// Recover nick from thieves
+		logging.Info("Nick taken - issuing RECOVER/RELEASE...")
+		client.Privmsg("NickServ", fmt.Sprintf("RECOVER %s %s", cfg.Irc.Nick, cfg.Irc.NickPass))
+		client.Privmsg("NickServ", fmt.Sprintf("RELEASE %s %s", cfg.Irc.Nick, cfg.Irc.NickPass))
+	}
+	SetBotState()
+}
+
+// Function for setting up the botstate
+func SetBotState() {
+	cfg := config.Config
+
+	if ghost := client.ST.GetNick(cfg.Irc.Nick); ghost != nil && ghost != client.Me {
+		// GHOST the old nick
+		logging.Info("Nick taken - issuing GHOST...")
+		client.Privmsg("NickServ", fmt.Sprintf("GHOST %s %s", cfg.Irc.Nick, cfg.Irc.NickPass))
+	}
+
+	// Set up the nick
+	client.Nick(cfg.Irc.Nick)
+
+	// Identify as the nick owner
+	client.Privmsg("NickServ", fmt.Sprintf("IDENTIFY %s", cfg.Irc.NickPass))
+
+	// Tell IRC I'm a bot
+	client.Mode(cfg.Irc.Nick, "+B")
+}

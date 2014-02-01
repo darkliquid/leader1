@@ -9,13 +9,7 @@ import (
 // Accepts line for details about the raw response line
 // Accepts target for being able to respond back to the same place the command was sent to
 func G3Song(conn *irc.Conn, line *irc.Line, target string) {
-    res, err := get_page("http://streamhere.g3-radio.net:4122/stats?sid=1")
-	if err != nil {
-		conn.Privmsg(target, fmt.Sprintf("%s: %s", line.Nick, err.Error()))
-		return
-	}
-
-	stats, err := shoutcast_stats(res)
+	stats, err := getShoutcastStats()
 	if err != nil {
 		conn.Privmsg(target, fmt.Sprintf("%s: %s", line.Nick, err.Error()))
 		return

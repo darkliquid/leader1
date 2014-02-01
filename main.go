@@ -2,8 +2,8 @@ package main
 
 import (
 	"fmt"
-	"github.com/darkliquid/leader1/config"
 	irc "github.com/darkliquid/goirc/client"
+	"github.com/darkliquid/leader1/config"
 	"github.com/fluffle/golog/logging"
 	"os"
 	"os/signal"
@@ -23,7 +23,7 @@ func main() {
 	client = irc.SimpleClient(cfg.Irc.Nick, "leader-1", "A mighty, mighty Go Bot")
 
 	// Set client timeout to 1 second
-	client.Timeout = time.Second
+	client.Timeout = time.Duration(cfg.Irc.Timeout) * time.Second
 
 	// Track the state of various things
 	client.EnableStateTracking()
@@ -33,11 +33,19 @@ func main() {
 
 	// Join channels on connect
 	client.AddHandler(irc.CONNECTED, func(conn *irc.Conn, line *irc.Line) {
-		for _, channel := range cfg.Irc.Channels {
-			conn.Join(channel)
-			logging.Info(fmt.Sprintf("Joining channel %s", channel))
-		}
+		SetBotState()
+		JoinChannels(conn, line)
 	})
+
+	// Disable built in 433 handlers and use our own (433: nick already in use events)
+	client.DelIntHandler("433")
+	client.AddHandler("433", ReclaimNick)
+
+	// Handle 477 :You need a registered nick to join that channel
+	client.AddHandler("477", JoinChannels)
+
+	// Hook into PING handler for doing periodic checks when the server pings us
+	client.AddHandler("PING", JoinChannels) // Make sure we have joined the relevant channels
 
 	// And a signal on disconnect
 	quit := make(chan bool)
@@ -59,7 +67,7 @@ func main() {
 	// concurrent handler for trapping SIGINT
 	go func() {
 		for sig := range trap {
-		    really_quit = true
+			really_quit = true
 			client.Quit(fmt.Sprintf("Goodbye (%s)", sig))
 		}
 	}()

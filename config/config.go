@@ -13,17 +13,17 @@ type IrcSettings struct {
 	Host     string
 	Port     string
 	Nick     string
+	NickPass string
 	Pass     string
 	Ssl      bool
-	Channels []string
+	NormalChannel string `json:"normal_channel"`
+	StaffChannel string `json:"staff_channel"`
 	MaxFailures int
+	Timeout int
 }
 
 type DbSettings struct {
-	User string
-	Pass string
-	Host string
-	Port string
+	DSN string
 }
 
 type Settings struct {
@@ -76,6 +76,16 @@ func Load() {
 	// Bail out if the demarshalling fails
 	if err != nil {
 		logging.Fatal("Couldn't parse config!")
+	}
+
+	// Set a default timeout of 30
+	if Config.Irc.Timeout == 0 {
+		Config.Irc.Timeout = 30
+	}
+
+	// Set a default Max Failures
+	if Config.Irc.MaxFailures == 0 {
+		Config.Irc.MaxFailures = 10
 	}
 
 	logging.Info("Loaded config")

@@ -14,9 +14,15 @@ Leader-1 expects there to be a leader-1.json in the current directory by default
         "host": "irc.domain.tld",
         "port": "6667",
         "nick": "mightygobot",
-        "pass": "password",
+        "nickpass": "MyIdentifyPassword"
+        "pass": "ServerPassword",
         "ssl": false,
-        "channels": ["#channel"]
+        "normal_channel": "#channel",
+        "staff_channel": "#staff",
+        "timeout": 30
+    },
+    "db": {
+    	"dsn": "user:pass@tcp(localhost)/database"
     }
 }
 ```
