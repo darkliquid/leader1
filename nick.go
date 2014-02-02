@@ -5,6 +5,7 @@ import (
 	irc "github.com/darkliquid/goirc/client"
 	"github.com/darkliquid/leader1/config"
 	"github.com/fluffle/golog/logging"
+	"time"
 )
 
 // Handler for reclaiming a stolen nick
@@ -24,6 +25,15 @@ func ReclaimNick(conn *irc.Conn, line *irc.Line) {
 func AutoVoice(conn *irc.Conn, line *irc.Line) {
 	if config.Config.Irc.AutoVoice {
 		target := line.Args[0]
+		time.Sleep(time.Millisecond * 500) // Wait half a second before we bother
+
+		privs, ok := conn.ST.GetNick(line.Nick).PrivsOnStr(target)
+
+		if ok && (privs.Owner || privs.Admin || privs.Op || privs.HalfOp || privs.Voice) {
+			logging.Debug(fmt.Sprintf("Skipping Auto Voicing %s on channel %s", line.Nick, target))
+			return
+		}
+
 		logging.Debug(fmt.Sprintf("Auto Voicing %s on channel %s", line.Nick, target))
 		conn.Mode(target, fmt.Sprintf("+v %s", line.Nick))
 	}
