@@ -7,6 +7,7 @@ import (
 	"github.com/fluffle/golog/logging"
 	"os"
 	"os/signal"
+	"syscall"
 	"time"
 )
 
@@ -57,9 +58,9 @@ func main() {
 	// Register commands
 	RegisterCommands()
 
-	// Trap interrupt signal so we can cleanly disconnect on fail
+	// Trap interrupt signal and TERM so we can cleanly disconnect on fail
 	trap := make(chan os.Signal, 1)
-	signal.Notify(trap, os.Interrupt)
+	signal.Notify(trap, os.Interrupt, syscall.SIGTERM)
 
 	// Var we check to see if we want to actually quit the app
 	really_quit := false

@@ -2,18 +2,22 @@ package commands
 
 import (
 	"encoding/xml"
+	"errors"
 	"fmt"
 	"github.com/fluffle/golog/logging"
 	"io/ioutil"
+	"net"
 	"net/http"
+	"strings"
+	"time"
 )
 
 func getPage(url string) (string, error) {
-	client := &http.Client{}
+	client := newHttpTimeoutClient()
 
 	req, err := http.NewRequest("GET", url, nil)
 	if err != nil {
-		logging.Warn("Couldn't build http request")
+		logging.Warn(fmt.Sprintf("Couldn't build http request: %s", err.Error()))
 		return "", err
 	}
 
@@ -21,14 +25,14 @@ func getPage(url string) (string, error) {
 
 	resp, err := client.Do(req)
 	if err != nil {
-		logging.Warn("Couldn't perform http request")
+		logging.Warn(fmt.Sprintf("Couldn't perform http request: %s", err.Error()))
 		return "", err
 	}
 
 	defer resp.Body.Close()
 	body, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
-		logging.Warn("Couldn't read http response body")
+		logging.Warn(fmt.Sprintf("Couldn't read http response body: %s", err.Error()))
 		return "", err
 	}
 
@@ -58,7 +62,7 @@ type ShoutcastServerStats struct {
 // Returns a shoutcast stats object
 func shoutcastStats(stats string) (xml_stats ShoutcastServerStats, err error) {
 	if err = xml.Unmarshal([]byte(stats), &xml_stats); err != nil {
-		logging.Warn("Couldn't decode shoutcast server stats XML")
+		logging.Warn(fmt.Sprintf("Couldn't decode shoutcast server stats XML: %s", err.Error()))
 		return ShoutcastServerStats{}, err
 	}
 	return
@@ -79,4 +83,50 @@ func getShoutcastStats() (ShoutcastServerStats, error) {
 	}
 
 	return stats, err
+}
+
+func timeoutDialer(cTimeout time.Duration, rwTimeout time.Duration) func(net, addr string) (c net.Conn, err error) {
+	return func(netw, addr string) (net.Conn, error) {
+		conn, err := net.DialTimeout(netw, addr, cTimeout)
+		if err != nil {
+			return nil, err
+		}
+		conn.SetDeadline(time.Now().Add(rwTimeout))
+		return conn, nil
+	}
+}
+
+// Sets up a 2 second timeout http client because waiting longer for a page request is too costly
+func newHttpTimeoutClient() *http.Client {
+	return &http.Client{
+		Transport: &http.Transport{
+			Dial: timeoutDialer(time.Second*2, time.Second*2),
+		},
+	}
+}
+
+// Extracts an URL out of a string
+func ExtractURL(str string) (url string, err error) {
+	// Assume errors by default
+	err = errors.New("No URL found")
+
+	// Capture links and post their titles, etc
+	start := strings.Index(str, "http://")
+
+	// Try https if no http match
+	if start == -1 {
+		start = strings.Index(str, "https://")
+	}
+
+	// Found a link... maybe
+	if start > -1 {
+		url = strings.SplitN(str[start:], " ", 2)[0]
+		// String isn't just a protocol
+		if len(url) > 9 && !strings.HasSuffix(url, "://") {
+			err = nil
+		} else {
+			url = ""
+		}
+	}
+	return
 }

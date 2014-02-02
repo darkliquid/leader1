@@ -21,18 +21,14 @@ func privMsgHandler(conn *irc.Conn, line *irc.Line) {
 
 	// If it's a !command
 	if strings.HasPrefix(line.Args[1], "!") {
-		// Split command line on spaces
-		raw_args := strings.Split(line.Args[1], " ")
-		var args []string
+		// Split command line into arguments
+		args := strings.Fields(line.Args[1])
 
-		// Strip out empty strings
-		for _, arg := range raw_args {
-			if arg != "" {
-				args = append(args, arg)
-			}
+		if len(args) > 1 {
+			logging.Debug(fmt.Sprintf("Got ! command \"%s\" with args %#v", args[0], args[1:]))
+		} else {
+			logging.Debug(fmt.Sprintf("Got ! command \"%s\" with no arguments", args[0]))
 		}
-
-		logging.Debug(fmt.Sprintf("Got ! command \"%s\" with args %#v", args[0], args[1:]))
 
 		// Switch on the first part of the line (i.e. the actual command)
 		switch {
@@ -55,12 +51,27 @@ func privMsgHandler(conn *irc.Conn, line *irc.Line) {
 		case args[0] == "!request" && len(args) > 1:
 			commands.Request(conn, line, target, strings.Join(args[1:], " "))
 		case args[0] == "!announce" && len(args) > 1:
-			commands.Announce(conn, line, target, strings.Join(args[1:], " ")) // ops
+			commands.Announce(conn, line, target, strings.Join(args[1:], " "))
 		case args[0] == "!invite" && len(args) > 1:
 			commands.Invite(conn, line, target, args[1:])
 		case args[0] == "!autovoice" && len(args) > 1:
 			commands.AutoVoice(conn, line, target, args[1])
+		case args[0] == "!hand":
+			if len(args) > 1 {
+				commands.Hand(conn, line, target, args[1:])
+			} else {
+				conn.Privmsg(target, fmt.Sprintf("%s: you what now? Use !hand [object] to [person] OR !hand me [object]", line.Nick))
+			}
 		}
+		return
+	}
+
+	// Auto title URLs that are found in non-command lines
+	if url, err := commands.ExtractURL(line.Args[1]); err == nil {
+		logging.Debug(fmt.Sprintf("Extracted URL(%s) from %s", url, line.Args[1]))
+		commands.URLTitler(conn, line, target, url)
+	} else {
+		logging.Debug(fmt.Sprintf("Couldn't extract URL from %s - %s", line.Args[1], err.Error()))
 	}
 }
 
