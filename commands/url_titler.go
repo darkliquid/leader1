@@ -56,7 +56,7 @@ func URLTitler(conn *irc.Conn, line *irc.Line, target string, url string) {
 			}
 		}
 
-		pageData := string(body[:count])
+		pageData := string(body)
 
 		start := strings.Index(strings.ToLower(pageData), "<title")
 		end := strings.Index(strings.ToLower(pageData), "</title>")
