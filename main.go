@@ -85,6 +85,7 @@ func main() {
 			// At the moment, just fail, but ideally we will retry until a maximum number of failures is exceeded
 			connection_failures++
 			if connection_failures > cfg.Irc.MaxFailures {
+				logging.Error("Failed too many times - exiting...")
 				really_quit = true
 			}
 			quit <- true
@@ -96,4 +97,8 @@ func main() {
 		// wait on quit channel
 		<-quit
 	}
+
+	// Close our channels
+	close(quit)
+	close(trap)
 }

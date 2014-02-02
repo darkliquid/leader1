@@ -25,6 +25,8 @@ type IrcSettings struct {
 
 type DbSettings struct {
 	DSN string
+	MaxOpenConns int
+	MaxIdleConns int
 }
 
 type Settings struct {
@@ -87,6 +89,14 @@ func Load() {
 	// Set a default Max Failures
 	if Config.Irc.MaxFailures == 0 {
 		Config.Irc.MaxFailures = 10
+	}
+
+	// Set default Max/Idle DB Conns
+	if Config.Db.MaxOpenConns == 0 {
+		Config.Db.MaxOpenConns = 5
+	}
+	if Config.Db.MaxIdleConns == 0 {
+		Config.Db.MaxIdleConns = 5
 	}
 
 	logging.Info("Loaded config")

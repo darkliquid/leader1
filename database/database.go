@@ -15,21 +15,36 @@ func DB() (*sql.DB, error) {
 
 	// No DB? Set it up!
 	if db == nil {
-		db, err = sql.Open("mysql", config.Config.Db.DSN)
-		if err != nil {
-			logging.Error(fmt.Sprintf("MySQL (1) error: %s", err.Error()))
-			return db, err
-		}
-		if err = db.Ping(); err != nil {
-			db.Close()
-			logging.Error(fmt.Sprintf("MySQL (2) error: %s", err.Error()))
-			return db, err
-		}
-		logging.Info("MySQL: connected")
+		db, err = openDB()
 	} else if err = db.Ping(); err != nil {
+		db.Close()
+		logging.Error(fmt.Sprintf("MySQL (2) error: %s", err.Error()))
+		db, err = openDB()
+		return db, err
+	}
+	return db, err
+}
+
+func openDB() (*sql.DB, error) {
+	logging.Info("MySQL: setting up new connection")
+
+	db, err := sql.Open("mysql", config.Config.Db.DSN)
+	if err != nil {
+		logging.Error(fmt.Sprintf("MySQL (1) error: %s", err.Error()))
+		return db, err
+	}
+
+	// Set connection limits
+	db.SetMaxOpenConns(config.Config.Db.MaxOpenConns)
+	db.SetMaxIdleConns(config.Config.Db.MaxIdleConns)
+
+	if err = db.Ping(); err != nil {
 		db.Close()
 		logging.Error(fmt.Sprintf("MySQL (2) error: %s", err.Error()))
 		return db, err
 	}
+
+	logging.Info("MySQL: connected")
+
 	return db, err
 }
