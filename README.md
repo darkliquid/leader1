@@ -14,7 +14,7 @@ Leader-1 expects there to be a leader-1.json in the current directory by default
         "host": "irc.domain.tld",
         "port": "6667",
         "nick": "mightygobot",
-        "nickpass": "MyIdentifyPassword"
+        "nickpass": "MyIdentifyPassword",
         "pass": "ServerPassword",
         "ssl": false,
         "normal_channel": "#channel",
