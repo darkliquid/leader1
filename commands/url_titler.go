@@ -35,13 +35,25 @@ func URLTitler(conn *irc.Conn, line *irc.Line, target string, url string) {
 	// No point in parsing response if it wasn't a success
 	if resp.StatusCode >= 200 && resp.StatusCode < 300 {
 		// Read 10kb of the body
-		body := make([]byte, 10240)
-		count, err := resp.Body.Read(body)
+		body := make([]byte, 0)
+		var count int
 
-		// Couldn't read the page for some reason
-		if err != nil {
-			logging.Warn(fmt.Sprintf("Failed to read page response for %s due to %s", url, err.Error()))
-			return
+		for {
+			more_body := make([]byte, 10240) // Read in up to 10kb increments
+			count, err = resp.Body.Read(more_body)
+			body = append(body, more_body[:count]...)
+			if len(body) >= 10240 { // Got 10kb, so break out
+				break
+			}
+
+			// Couldn't read the page for some reason, maybe EOF
+			if err != nil {
+				if len(body) == 0 {
+					fmt.Printf("Failed to read page response for %s due to %s", url, err.Error())
+					return
+				}
+				break
+			}
 		}
 
 		pageData := string(body[:count])
