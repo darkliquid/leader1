@@ -76,5 +76,5 @@ func URLTitler(conn *irc.Conn, line *irc.Line, target string, url string) {
 	}
 
 	// Post back to channel
-	conn.Privmsg(target, fmt.Sprintf("[Link] %s", html.UnescapeString(title)))
+	conn.Privmsg(target, fmt.Sprintf("[Link] %s", strings.TrimSpace(html.UnescapeString(title))))
 }
