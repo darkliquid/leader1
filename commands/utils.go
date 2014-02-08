@@ -8,7 +8,7 @@ import (
 	"github.com/darkliquid/leader1/config"
 	"io/ioutil"
 	"net"
-	"net/http"
+	http "github.com/darkliquid/leader1/net/http"
 	"strings"
 	"time"
 )
@@ -22,7 +22,35 @@ func getPage(url string) (string, error) {
 		return "", err
 	}
 
-	req.Header.Set("User-Agent", "Leader-1/Mighty, Mighty GoBot")
+	req.Header.Set("User-Agent", "Mozilla/5.0 Leader-1/Mighty, Mighty GoBot")
+
+	resp, err := client.Do(req)
+	if err != nil {
+		logging.Warn(fmt.Sprintf("Couldn't perform http request: %s", err.Error()))
+		return "", err
+	}
+
+	defer resp.Body.Close()
+	body, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		logging.Warn(fmt.Sprintf("Couldn't read http response body: %s", err.Error()))
+		return "", err
+	}
+
+	return string(body), err
+}
+
+func getPageWithAuth(url string, user string, pass string) (string, error) {
+	client := newHttpTimeoutClient()
+
+	req, err := http.NewRequest("GET", url, nil)
+	if err != nil {
+		logging.Warn(fmt.Sprintf("Couldn't build http request: %s", err.Error()))
+		return "", err
+	}
+
+	req.Header.Set("User-Agent", "Mozilla/5.0 Leader-1/Mighty, Mighty GoBot")
+	req.SetBasicAuth(user, pass)
 
 	resp, err := client.Do(req)
 	if err != nil {
@@ -71,7 +99,14 @@ func shoutcastStats(stats string) (xml_stats ShoutcastServerStats, err error) {
 
 // Does the full process for returning a populated shoutcast stat object
 func getShoutcastStats() (ShoutcastServerStats, error) {
-	res, err := getPage(config.Config.Stream.StatsURL)
+    var res string
+    var err error
+    cfg := config.Config
+    if cfg.Stream.StatsUser != "" && cfg.Stream.StatsPass != "" {
+	    res, err = getPageWithAuth(cfg.Stream.StatsURL, cfg.Stream.StatsUser, cfg.Stream.StatsPass)
+    } else {
+        res, err = getPage(cfg.Stream.StatsURL)
+    }
 	if err != nil {
 		logging.Error(fmt.Sprintf("Couldn't load page - %s", err.Error()))
 		return ShoutcastServerStats{}, err

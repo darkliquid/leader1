@@ -31,6 +31,8 @@ type DbSettings struct {
 
 type StreamSettings struct {
     StatsURL string `json:"stats_url"`
+    StatsUser string `json:"stats_user"`
+    StatsPass string `json:"stats_pass"`
 }
 
 type Settings struct {
