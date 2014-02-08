@@ -43,6 +43,7 @@ func doLikeOrHate(conn *irc.Conn, line *irc.Line, target string, likeType string
 
     if strings.TrimSpace(stats.SongTitle) == "" {
         logging.Error(fmt.Sprintf("Song title missing for some reason when do a %s for %s at %s", likeType, line.Nick, time.Now()))
+        return
     }
 
 	rows, err := db.Query("INSERT INTO likelogs (type, user, song, date) VALUES (?, ?, ?, ?)", likeType, line.Nick, stats.SongTitle, time.Now().Unix())
