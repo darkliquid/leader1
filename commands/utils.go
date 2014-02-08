@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"github.com/fluffle/golog/logging"
+	"github.com/darkliquid/leader1/config"
 	"io/ioutil"
 	"net"
 	"net/http"
@@ -70,7 +71,7 @@ func shoutcastStats(stats string) (xml_stats ShoutcastServerStats, err error) {
 
 // Does the full process for returning a populated shoutcast stat object
 func getShoutcastStats() (ShoutcastServerStats, error) {
-	res, err := getPage("http://streamhere.g3-radio.net:4122/stats?sid=1")
+	res, err := getPage(config.Config.Stream.StatsURL)
 	if err != nil {
 		logging.Error(fmt.Sprintf("Couldn't load page - %s", err.Error()))
 		return ShoutcastServerStats{}, err

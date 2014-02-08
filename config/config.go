@@ -29,9 +29,14 @@ type DbSettings struct {
 	MaxIdleConns int
 }
 
+type StreamSettings struct {
+    StatsURL string `json:"stats_url"`
+}
+
 type Settings struct {
 	Irc IrcSettings
 	Db  DbSettings
+	Stream StreamSettings
 }
 
 var Config Settings

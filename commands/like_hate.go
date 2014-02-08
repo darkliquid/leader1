@@ -41,12 +41,16 @@ func doLikeOrHate(conn *irc.Conn, line *irc.Line, target string, likeType string
 		return
 	}
 
+    if strings.TrimSpace(stats.SongTitle) == "" {
+        logging.Error(fmt.Sprintf("Song title missing for some reason when do a %s for %s at %s", likeType, line.Nick, time.Now()))
+    }
+
 	rows, err := db.Query("INSERT INTO likelogs (type, user, song, date) VALUES (?, ?, ?, ?)", likeType, line.Nick, stats.SongTitle, time.Now().Unix())
 	defer rows.Close()
 
 	switch {
 	case err != nil:
-		logging.Error(fmt.Sprintf("Failed to add like to db :( - %s", err.Error()))
+		logging.Error(fmt.Sprintf("Failed to add %s to db :( - %s", likeType, err.Error()))
 		conn.Privmsg(cfg.Irc.StaffChannel, fmt.Sprintf("%s: db conn failed on %s from %s of %s", strings.ToUpper(likeType), likeType, line.Nick, stats.SongTitle))
 		conn.Notice(line.Nick, fmt.Sprintf("Sorry, I couldn't register your %s of %s", likeType, stats.SongTitle))
 	default:
