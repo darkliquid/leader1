@@ -2,18 +2,19 @@ package bot
 
 import (
 	"github.com/darkliquid/leader1/config"
+	"github.com/darkliquid/leader1/plugins"
 	"github.com/darkliquid/go-ircevent"
 	"time"
 	"net"
-	"github.com/robertkrimen/otto"
+	//"github.com/robertkrimen/otto"
 	"log"
 	"os"
 )
 
 type Bot struct {
 	conn *irc.Connection
-	cfg config.Settings
-	js *otto.Otto
+	cfg  *config.Settings
+	pm   *plugins.PluginManager
 }
 
 func (bot *Bot) Quit() {
@@ -31,13 +32,20 @@ func (bot *Bot) Connect() error {
 
 func (bot *Bot) InitCallbacks() error {
 	// Setup callbacks
-	bot.conn.AddCallback("001", func(event *irc.Event) {
-		bot.conn.Join("#dl-dev-test")
-	});
+	//bot.conn.AddCallback("001", func(event *irc.Event) {
+	//	bot.conn.Join("#dl-dev-test")
+	//});
+
+	// Callback dispatcher for plugin callbacks
+	bot.conn.AddCallback("*", bot.pm.RunCallbacks)
+
+	// Callback dispatcher for plugin commands
+	bot.conn.AddCallback("PRIVMSG", bot.pm.RunCommands)
+
 	return nil
 }
 
-func New(cfg config.Settings) (*Bot, error) {
+func New(cfg *config.Settings) (*Bot, error) {
 	// Set up Irc Client
 	client := irc.IRC(cfg.Irc.Nick, "leader-1")
 
@@ -67,9 +75,14 @@ func New(cfg config.Settings) (*Bot, error) {
 	// Setup IRC logger
 	client.Log = log.New(os.Stdout, "[irc] ", log.LstdFlags)
 
-	return &Bot{
+	// Make bot instance
+	bot := &Bot{
 		cfg: cfg,
 		conn: client,
-		js: otto.New(),
-	}, nil
+	}
+	bot.pm = plugins.New(cfg)
+
+	bot.pm.LoadPlugins()
+
+	return bot, nil
 }

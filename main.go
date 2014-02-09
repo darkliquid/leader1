@@ -4,22 +4,15 @@ import (
 	"fmt"
 	"github.com/darkliquid/leader1/config"
 	"github.com/darkliquid/leader1/bot"
-	"github.com/darkliquid/go-ircevent"
 	"os"
 	"os/signal"
 	"syscall"
 )
 
-var client *irc.Connection
-var cfg config.Settings
-
-func init() {
-	// Load our configuration
-	config.Load()
-	cfg = config.Config
-}
-
 func main() {
+	// Load config
+	cfg := config.Load()
+
 	// Set up Irc Client
 	client, err := bot.New(cfg)
 

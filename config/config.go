@@ -25,6 +25,7 @@ type IrcSettings struct {
 	AutoVoice     bool
 	Version       string
 	Debug         bool
+	PluginsDir    string `json:"plugin_dir"`
 }
 
 type DbSettings struct {
@@ -46,9 +47,7 @@ type Settings struct {
 	Debug bool
 }
 
-var Config Settings
-
-func Load() {
+func Load() (*Settings) {
 	log := log.New(os.Stdout, "[config] ", log.LstdFlags)
 	// Gets the current executable path for use a cfgfile path
 	cwd, err := os.Getwd()
@@ -83,7 +82,8 @@ func Load() {
 	log.Println("Reading config file")
 
 	// Unmarshal json config file into our config structure
-	err = json.Unmarshal(file, &Config)
+	var cfg Settings
+	err = json.Unmarshal(file, &cfg)
 
 	// Bail out if the demarshalling fails
 	if err != nil {
@@ -91,14 +91,18 @@ func Load() {
 	}
 
 	// Set default Max/Idle DB Conns
-	if Config.Db.MaxOpenConns == 0 {
-		Config.Db.MaxOpenConns = 5
+	if cfg.Db.MaxOpenConns == 0 {
+		cfg.Db.MaxOpenConns = 5
 	}
-	if Config.Db.MaxIdleConns == 0 {
-		Config.Db.MaxIdleConns = 5
+	if cfg.Db.MaxIdleConns == 0 {
+		cfg.Db.MaxIdleConns = 5
+	}
+
+	if cfg.Irc.PluginsDir == "" {
+		cfg.Irc.PluginsDir = filepath.Join(cwd, "plugins")
 	}
 
 	log.Println("Loaded config")
 
-	return
+	return &cfg
 }
