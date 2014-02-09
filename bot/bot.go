@@ -1,11 +1,11 @@
 package bot
 
 import (
+	"github.com/darkliquid/go-ircevent"
 	"github.com/darkliquid/leader1/config"
 	"github.com/darkliquid/leader1/plugins"
-	"github.com/darkliquid/go-ircevent"
-	"time"
 	"net"
+	"time"
 	//"github.com/robertkrimen/otto"
 	"log"
 	"os"
@@ -50,11 +50,11 @@ func New(cfg *config.Settings) (*Bot, error) {
 	client := irc.IRC(cfg.Irc.Nick, "leader-1")
 
 	if cfg.Irc.Version != "" {
-		client.Version = cfg.Irc.Version		
+		client.Version = cfg.Irc.Version
 	}
-	
+
 	if cfg.Irc.Debug || cfg.Debug {
-		client.Debug = true		
+		client.Debug = true
 	}
 	if cfg.Irc.Timeout > 0 {
 		// Set client timeout to configured amount in seconds
@@ -77,7 +77,7 @@ func New(cfg *config.Settings) (*Bot, error) {
 
 	// Make bot instance
 	bot := &Bot{
-		cfg: cfg,
+		cfg:  cfg,
 		conn: client,
 	}
 	bot.pm = plugins.New(cfg)

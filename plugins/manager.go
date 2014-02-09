@@ -1,21 +1,21 @@
 package plugins
 
 import (
-	"path/filepath"
-	"github.com/darkliquid/leader1/config"
 	"github.com/darkliquid/go-ircevent"
-	"strings"
+	"github.com/darkliquid/leader1/config"
 	"github.com/robertkrimen/otto"
-	"os"
 	"io/ioutil"
 	"log"
+	"os"
+	"path/filepath"
+	"strings"
 )
 
 type PluginManager struct {
-	plugins      map[string]*Plugin
-	log          *log.Logger
-	js           *otto.Otto
-	cfg          *config.Settings
+	plugins map[string]*Plugin
+	log     *log.Logger
+	js      *otto.Otto
+	cfg     *config.Settings
 }
 
 // Walker func
@@ -36,7 +36,7 @@ func (pm *PluginManager) traversePluginDir(path string, info os.FileInfo, err er
 			pm.log.Printf("Skipping plugin file `%s`: %s\n", path, err)
 		}
 	}
-	return nil 
+	return nil
 }
 
 func (pm *PluginManager) LoadPlugins() {
@@ -66,11 +66,11 @@ func (pm *PluginManager) LoadPlugin(path string) error {
 
 	name := filepath.Base(path)
 	pm.plugins[name] = &Plugin{
-		commands:     make(map[string]*PluginFunc),
-		callbacks:    make(map[string][]*PluginFunc),
-		log:          log.New(os.Stdout, "["+name+"] ", log.LstdFlags),
-		js:           pm.js,
-		cfg:          pm.cfg,
+		commands:  make(map[string]*PluginFunc),
+		callbacks: make(map[string][]*PluginFunc),
+		log:       log.New(os.Stdout, "["+name+"] ", log.LstdFlags),
+		js:        pm.js,
+		cfg:       pm.cfg,
 	}
 
 	// Add in function to Register !commands
@@ -123,7 +123,7 @@ func (pm *PluginManager) RunCallbacks(event *irc.Event) {
 	for name, plugin := range pm.plugins {
 		if pm.cfg.Irc.Debug || pm.cfg.Debug {
 			pm.log.Printf("Dispatching event `%s` to plugin `%s` callbacks\n", event.Code, name)
-		} 
+		}
 		plugin.RunCallbacks(event)
 	}
 }
@@ -142,9 +142,9 @@ func (pm *PluginManager) RunCommands(event *irc.Event) {
 
 func New(cfg *config.Settings) *PluginManager {
 	return &PluginManager{
-		plugins:      make(map[string]*Plugin),
-		log:          log.New(os.Stdout, "[plugins] ", log.LstdFlags),
-		js:           otto.New(),
-		cfg:          cfg,
+		plugins: make(map[string]*Plugin),
+		log:     log.New(os.Stdout, "[plugins] ", log.LstdFlags),
+		js:      otto.New(),
+		cfg:     cfg,
 	}
 }

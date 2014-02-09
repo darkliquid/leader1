@@ -4,11 +4,11 @@ import (
 	"encoding/xml"
 	"errors"
 	"fmt"
-	"github.com/fluffle/golog/logging"
 	"github.com/darkliquid/leader1/config"
+	http "github.com/darkliquid/leader1/net/http"
+	"github.com/fluffle/golog/logging"
 	"io/ioutil"
 	"net"
-	http "github.com/darkliquid/leader1/net/http"
 	"strings"
 	"time"
 )
@@ -99,14 +99,14 @@ func shoutcastStats(stats string) (xml_stats ShoutcastServerStats, err error) {
 
 // Does the full process for returning a populated shoutcast stat object
 func getShoutcastStats() (ShoutcastServerStats, error) {
-    var res string
-    var err error
-    cfg := config.Config
-    if cfg.Stream.StatsUser != "" && cfg.Stream.StatsPass != "" {
-	    res, err = getPageWithAuth(cfg.Stream.StatsURL, cfg.Stream.StatsUser, cfg.Stream.StatsPass)
-    } else {
-        res, err = getPage(cfg.Stream.StatsURL)
-    }
+	var res string
+	var err error
+	cfg := config.Config
+	if cfg.Stream.StatsUser != "" && cfg.Stream.StatsPass != "" {
+		res, err = getPageWithAuth(cfg.Stream.StatsURL, cfg.Stream.StatsUser, cfg.Stream.StatsPass)
+	} else {
+		res, err = getPage(cfg.Stream.StatsURL)
+	}
 	if err != nil {
 		logging.Error(fmt.Sprintf("Couldn't load page - %s", err.Error()))
 		return ShoutcastServerStats{}, err

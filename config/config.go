@@ -4,9 +4,9 @@ import (
 	"encoding/json"
 	"flag"
 	"io/ioutil"
+	"log"
 	"os"
 	"path/filepath"
-	"log"
 )
 
 type IrcSettings struct {
@@ -29,25 +29,25 @@ type IrcSettings struct {
 }
 
 type DbSettings struct {
-	DSN string
+	DSN          string
 	MaxOpenConns int
 	MaxIdleConns int
 }
 
 type StreamSettings struct {
-    StatsURL string `json:"stats_url"`
-    StatsUser string `json:"stats_user"`
-    StatsPass string `json:"stats_pass"`
+	StatsURL  string `json:"stats_url"`
+	StatsUser string `json:"stats_user"`
+	StatsPass string `json:"stats_pass"`
 }
 
 type Settings struct {
-	Irc IrcSettings
-	Db  DbSettings
+	Irc    IrcSettings
+	Db     DbSettings
 	Stream StreamSettings
-	Debug bool
+	Debug  bool
 }
 
-func Load() (*Settings) {
+func Load() *Settings {
 	log := log.New(os.Stdout, "[config] ", log.LstdFlags)
 	// Gets the current executable path for use a cfgfile path
 	cwd, err := os.Getwd()

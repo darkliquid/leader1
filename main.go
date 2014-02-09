@@ -2,8 +2,8 @@ package main
 
 import (
 	"fmt"
-	"github.com/darkliquid/leader1/config"
 	"github.com/darkliquid/leader1/bot"
+	"github.com/darkliquid/leader1/config"
 	"os"
 	"os/signal"
 	"syscall"
@@ -34,9 +34,9 @@ func main() {
 		fmt.Printf("Caught: %s - quitting\n", sig)
 		client.Quit()
 		quit <- true
-    }()
+	}()
 
-    // Block here for quit channel
+	// Block here for quit channel
 	<-quit
 	close(quit)
 

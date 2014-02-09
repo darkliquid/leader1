@@ -1,11 +1,11 @@
 package plugins
 
 import (
-	"github.com/darkliquid/leader1/config"
 	"github.com/darkliquid/go-ircevent"
-	"strings"
+	"github.com/darkliquid/leader1/config"
 	"github.com/robertkrimen/otto"
 	"log"
+	"strings"
 )
 
 type PluginFunc struct {
@@ -14,11 +14,11 @@ type PluginFunc struct {
 }
 
 type Plugin struct {
-	commands     map[string]*PluginFunc
-	callbacks    map[string][]*PluginFunc
-	log          *log.Logger
-	js			 *otto.Otto
-	cfg          *config.Settings
+	commands  map[string]*PluginFunc
+	callbacks map[string][]*PluginFunc
+	log       *log.Logger
+	js        *otto.Otto
+	cfg       *config.Settings
 }
 
 func (p *Plugin) SetCommand(name string, command otto.Value, help string) {
@@ -46,7 +46,7 @@ func (p *Plugin) AddCallback(eventCode string, name string, callback otto.Value)
 	}
 	p.callbacks[eventCode] = append(p.callbacks[eventCode], &PluginFunc{
 		function: wrappedCallback,
-		help: name,
+		help:     name,
 	})
 }
 
