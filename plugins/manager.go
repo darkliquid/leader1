@@ -16,6 +16,7 @@ type PluginManager struct {
 	log     *log.Logger
 	js      *otto.Otto
 	cfg     *config.Settings
+	conn    *irc.Connection
 }
 
 // Walker func
@@ -66,8 +67,8 @@ func (pm *PluginManager) LoadPlugin(path string) error {
 
 	name := filepath.Base(path)
 	pm.plugins[name] = &Plugin{
-		commands:  make(map[string]*PluginFunc),
-		callbacks: make(map[string][]*PluginFunc),
+		commands:  make(map[string]*pluginFunc),
+		callbacks: make(map[string][]*pluginFunc),
 		log:       log.New(os.Stdout, "["+name+"] ", log.LstdFlags),
 		js:        pm.js,
 		cfg:       pm.cfg,
@@ -140,11 +141,12 @@ func (pm *PluginManager) RunCommands(event *irc.Event) {
 	}
 }
 
-func New(cfg *config.Settings) *PluginManager {
+func New(cfg *config.Settings, conn *irc.Connection) *PluginManager {
 	return &PluginManager{
 		plugins: make(map[string]*Plugin),
 		log:     log.New(os.Stdout, "[plugins] ", log.LstdFlags),
 		js:      otto.New(),
 		cfg:     cfg,
+		conn:    conn,
 	}
 }

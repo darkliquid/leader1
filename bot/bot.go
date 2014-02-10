@@ -6,7 +6,6 @@ import (
 	"github.com/darkliquid/leader1/plugins"
 	"net"
 	"time"
-	//"github.com/robertkrimen/otto"
 	"log"
 	"os"
 )
@@ -80,9 +79,13 @@ func New(cfg *config.Settings) (*Bot, error) {
 		cfg:  cfg,
 		conn: client,
 	}
-	bot.pm = plugins.New(cfg)
+	bot.pm = plugins.New(cfg, client)
 
+	// Load the plugins
 	bot.pm.LoadPlugins()
+
+	// Init the JS Execution environment hooks
+	bot.pm.InitIRCJSBridge()
 
 	return bot, nil
 }

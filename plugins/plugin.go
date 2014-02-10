@@ -8,14 +8,19 @@ import (
 	"strings"
 )
 
-type PluginFunc struct {
-	function func(*irc.Event)
+type pluginFunc struct {
+	function func(*pluginEnvironment)
 	help     string
 }
 
+type pluginEnvironment struct {
+	Event *irc.Event
+	Log   func(call otto.FunctionCall) otto.Value
+}
+
 type Plugin struct {
-	commands  map[string]*PluginFunc
-	callbacks map[string][]*PluginFunc
+	commands  map[string]*pluginFunc
+	callbacks map[string][]*pluginFunc
 	log       *log.Logger
 	js        *otto.Otto
 	cfg       *config.Settings
@@ -25,26 +30,26 @@ func (p *Plugin) SetCommand(name string, command otto.Value, help string) {
 	if _, ok := p.commands[name]; ok {
 		p.log.Printf("Warning: Command `%s` was already defined. Overriding...", name)
 	}
-	wrappedCommand := func(event *irc.Event) {
-		_, err := command.Call(p.js.ToValue(event))
+	wrappedCommand := func(env *pluginEnvironment) {
+		_, err := command.Call(p.js.ToValue(env))
 		if err != nil {
 			p.log.Printf("Command `%s` errored: %s", name, err)
 		}
 	}
-	p.commands[name] = &PluginFunc{
+	p.commands[name] = &pluginFunc{
 		function: wrappedCommand,
 		help:     help,
 	}
 }
 
 func (p *Plugin) AddCallback(eventCode string, name string, callback otto.Value) {
-	wrappedCallback := func(event *irc.Event) {
-		_, err := callback.Call(p.js.ToValue(event))
+	wrappedCallback := func(env *pluginEnvironment) {
+		_, err := callback.Call(p.js.ToValue(env))
 		if err != nil {
 			p.log.Printf("Callback `%s` (%#v) for event code `%s` errored: %s", name, callback, eventCode, err)
 		}
 	}
-	p.callbacks[eventCode] = append(p.callbacks[eventCode], &PluginFunc{
+	p.callbacks[eventCode] = append(p.callbacks[eventCode], &pluginFunc{
 		function: wrappedCallback,
 		help:     name,
 	})
@@ -57,7 +62,7 @@ func (p *Plugin) RunCallbacks(event *irc.Event) {
 		}
 
 		for _, callback := range callbacks {
-			go callback.function(event)
+			callback.function(p.jsEnv(event))
 		}
 	}
 }
@@ -72,11 +77,26 @@ func (p *Plugin) RunCommand(event *irc.Event) bool {
 			if p.cfg.Irc.Debug || p.cfg.Debug {
 				p.log.Printf("%v (!%v) >> %#v\n", event.Code, command, event)
 			}
+
 			cmd := p.commands[command].function
-			go cmd(event)
+			cmd(p.jsEnv(event))
 		}
 
 		return ok
 	}
 	return false
+}
+
+func (p *Plugin) jsEnv(event *irc.Event) *pluginEnvironment {
+	return &pluginEnvironment{
+		Event: event,
+		Log: func(call otto.FunctionCall) otto.Value {
+			if len(call.ArgumentList) == 1 && call.ArgumentList[0].IsString() {
+				p.log.Println(call.ArgumentList[0].String())
+				return otto.TrueValue()
+			} else {
+				return otto.FalseValue()
+			}
+		},
+	}
 }
