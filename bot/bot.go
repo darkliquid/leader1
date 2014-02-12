@@ -11,9 +11,10 @@ import (
 )
 
 type Bot struct {
-	conn *irc.Connection
-	cfg  *config.Settings
-	pm   *plugins.PluginManager
+	conn  *irc.Connection
+	cfg   *config.Settings
+	pm    *plugins.PluginManager
+	state *StateTracker
 }
 
 func (bot *Bot) Quit() {
@@ -30,10 +31,8 @@ func (bot *Bot) Connect() error {
 }
 
 func (bot *Bot) InitCallbacks() error {
-	// Setup callbacks
-	//bot.conn.AddCallback("001", func(event *irc.Event) {
-	//	bot.conn.Join("#dl-dev-test")
-	//});
+	// Handle built-in commands
+	bot.conn.AddCallback("PRIVMSG", bot.RunBuiltinCommands)
 
 	// Callback dispatcher for plugin callbacks
 	bot.conn.AddCallback("*", bot.pm.RunCallbacks)

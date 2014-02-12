@@ -9,6 +9,7 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"runtime"
 )
 
 type PluginManager struct {
@@ -43,6 +44,10 @@ func (pm *PluginManager) traversePluginDir(path string, info os.FileInfo, err er
 func (pm *PluginManager) LoadPlugins() {
 	// Ditch existing plugins by redeclaring
 	pm.plugins = make(map[string]*Plugin)
+	// Init js env now (no need for it until we load plugins!)
+	pm.js = otto.New()
+	// Force a GC
+	runtime.GC()
 
 	_, err := os.Stat(pm.cfg.Irc.PluginsDir)
 	if err == nil {
@@ -66,13 +71,23 @@ func (pm *PluginManager) LoadPlugin(path string) error {
 	}
 
 	name := filepath.Base(path)
+	log := log.New(os.Stdout, "["+name+"] ", log.LstdFlags)
 	pm.plugins[name] = &Plugin{
 		commands:  make(map[string]*pluginFunc),
 		callbacks: make(map[string][]*pluginFunc),
-		log:       log.New(os.Stdout, "["+name+"] ", log.LstdFlags),
+		log:       log,
 		js:        pm.js,
 		cfg:       pm.cfg,
 	}
+
+	pm.js.Set("log", func(call otto.FunctionCall) otto.Value {
+		if len(call.ArgumentList) == 1 && call.ArgumentList[0].IsString() {
+			log.Println(call.ArgumentList[0].String())
+			return otto.TrueValue()
+		} else {
+			return otto.FalseValue()
+		}
+	})
 
 	// Add in function to Register !commands
 	pm.js.Set("RegisterCommand", func(call otto.FunctionCall) otto.Value {
@@ -110,6 +125,7 @@ func (pm *PluginManager) LoadPlugin(path string) error {
 	// normal operations
 	pm.js.Set("RegisterCommand", nil)
 	pm.js.Set("RegisterCallback", nil)
+	pm.js.Set("log", nil)
 
 	if err != nil {
 		pm.log.Printf("Error interpreting plugin code for plugin `%s`: %s\n", name, err)
@@ -145,7 +161,6 @@ func New(cfg *config.Settings, conn *irc.Connection) *PluginManager {
 	return &PluginManager{
 		plugins: make(map[string]*Plugin),
 		log:     log.New(os.Stdout, "[plugins] ", log.LstdFlags),
-		js:      otto.New(),
 		cfg:     cfg,
 		conn:    conn,
 	}

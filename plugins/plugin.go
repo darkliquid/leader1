@@ -68,8 +68,8 @@ func (p *Plugin) RunCallbacks(event *irc.Event) {
 }
 
 func (p *Plugin) RunCommand(event *irc.Event) bool {
-	if event.Message[0] == '!' && len(event.Message) > 1 {
-		call := strings.SplitN(event.Message[1:], " ", 2)
+	if event.Message()[0] == '!' && len(event.Message()) > 1 {
+		call := strings.SplitN(event.Message()[1:], " ", 2)
 		command := call[0]
 
 		var ok bool
