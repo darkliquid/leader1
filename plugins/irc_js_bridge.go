@@ -5,7 +5,7 @@ import (
 )
 
 type pmIRCJSBridge struct {
-	Nick, GetNick, SendRaw, Privmsg, Notice, Part, Join func(call otto.FunctionCall) otto.Value
+	Nick, GetNick, SendRaw, Privmsg, Notice, Part, Join, Who, Whois, Mode func(call otto.FunctionCall) otto.Value
 }
 
 func (pm *PluginManager) InitIRCJSBridge() {
@@ -62,6 +62,40 @@ func (pm *PluginManager) InitIRCJSBridge() {
 				pm.conn.Join(call.Argument(0).String())
 				return otto.TrueValue()
 			} else {
+				return otto.FalseValue()
+			}
+		},
+		Who: func(call otto.FunctionCall) otto.Value {
+			if len(call.ArgumentList) == 1 && call.ArgumentList[0].IsString() {
+				pm.conn.Who(call.Argument(0).String())
+				return otto.TrueValue()
+			} else {
+				return otto.FalseValue()
+			}
+		},
+		Whois: func(call otto.FunctionCall) otto.Value {
+			if len(call.ArgumentList) == 1 && call.ArgumentList[0].IsString() {
+				pm.conn.Whois(call.Argument(0).String())
+				return otto.TrueValue()
+			} else {
+				return otto.FalseValue()
+			}
+		},
+		Mode: func(call otto.FunctionCall) otto.Value {
+			if len(call.ArgumentList) == 1 && call.ArgumentList[0].IsString() {
+				pm.conn.Mode(call.Argument(0).String())
+				return otto.TrueValue()
+			} else {
+				if len(call.ArgumentList) > 1 && call.ArgumentList[0].IsString() {
+					var args []string
+					for _, arg := range call.ArgumentList[1:] {
+						if !arg.IsString() {
+							return otto.FalseValue()
+						}
+						args = append(args, arg.String())
+					}
+					pm.conn.Mode(call.Argument(0).String(), args...)
+				}
 				return otto.FalseValue()
 			}
 		},

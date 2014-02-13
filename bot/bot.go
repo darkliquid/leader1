@@ -22,6 +22,7 @@ func (bot *Bot) Quit() {
 }
 
 func (bot *Bot) Connect() error {
+	bot.InitStateTracking()
 	bot.InitCallbacks()
 	// Connect
 	if bot.cfg.Irc.Port != "" {

@@ -5,7 +5,7 @@ type NickModes struct {
 }
 
 type Nick struct {
-	Nick, Ident, Host, Name string
-	Modes                   *NickModes
-	Channels                []string
+	Nick, User, Host, Name string
+	Modes                  NickModes
+	Channels               map[string]*ChannelPrivileges
 }
