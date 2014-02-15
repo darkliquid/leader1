@@ -2,10 +2,18 @@ package plugins
 
 import (
 	"github.com/robertkrimen/otto"
+	"github.com/darkliquid/leader1/state"
+	"github.com/darkliquid/leader1/utils"
 )
 
 type pmIRCJSBridge struct {
-	Nick, GetNick, SendRaw, Privmsg, Notice, Part, Join, Who, Whois, Mode func(call otto.FunctionCall) otto.Value
+	Nick, GetNick, SendRaw, Privmsg, Notice, Action,
+	Part, Join, Who, Whois, Mode, Nicks, Channels,
+	Topic, Away, Invite, Oper, GetPrivs func(call otto.FunctionCall) otto.Value
+}
+
+func stateNickToValue(nick *state.Nick) (val otto.Value) {
+	return
 }
 
 func (pm *PluginManager) InitIRCJSBridge() {
@@ -98,6 +106,70 @@ func (pm *PluginManager) InitIRCJSBridge() {
 				}
 				return otto.FalseValue()
 			}
+		},
+		Nicks: func(call otto.FunctionCall) otto.Value {
+			return utils.SliceToJavascriptArray(pm.js, pm.state.Nicks())
+		},
+		Channels: func(call otto.FunctionCall) otto.Value {
+			return utils.SliceToJavascriptArray(pm.js, pm.state.Channels())
+		},
+		Action: func(call otto.FunctionCall) otto.Value {
+			if len(call.ArgumentList) == 2 && call.ArgumentList[0].IsString() && call.ArgumentList[1].IsString() {
+				utils.IRCAction(pm.conn, call.Argument(0).String(), call.Argument(1).String())
+				return otto.TrueValue()
+			} else {
+				return otto.FalseValue()
+			}
+		},
+		Topic: func(call otto.FunctionCall) otto.Value {
+			switch {
+			case len(call.ArgumentList) == 1 && call.ArgumentList[0].IsString():
+				utils.IRCTopic(pm.conn, call.Argument(0).String())
+				return otto.TrueValue()
+			case len(call.ArgumentList) == 2 && call.ArgumentList[0].IsString() && call.ArgumentList[1].IsString():
+				utils.IRCTopic(pm.conn, call.Argument(0).String(), call.Argument(1).String())
+				return otto.TrueValue()
+			default:
+				return otto.FalseValue()
+			}
+		},
+		Away: func(call otto.FunctionCall) otto.Value {
+			switch {
+			case len(call.ArgumentList) == 0:
+				utils.IRCAway(pm.conn)
+				return otto.TrueValue()
+			case len(call.ArgumentList) == 1 && call.ArgumentList[0].IsString():
+				utils.IRCAway(pm.conn, call.Argument(0).String())
+				return otto.TrueValue()
+			default:
+				return otto.FalseValue()
+			}
+		},
+		Oper: func(call otto.FunctionCall) otto.Value {
+			if len(call.ArgumentList) == 2 && call.ArgumentList[0].IsString() && call.ArgumentList[1].IsString() {
+				utils.IRCOper(pm.conn, call.Argument(0).String(), call.Argument(1).String())
+				return otto.TrueValue()
+			} else {
+				return otto.FalseValue()
+			}
+		},
+		Invite: func(call otto.FunctionCall) otto.Value {
+			if len(call.ArgumentList) == 2 && call.ArgumentList[0].IsString() && call.ArgumentList[1].IsString() {
+				utils.IRCInvite(pm.conn, call.Argument(0).String(), call.Argument(1).String())
+				return otto.TrueValue()
+			} else {
+				return otto.FalseValue()
+			}
+		},
+		GetPrivs: func(call otto.FunctionCall) otto.Value {
+			if len(call.ArgumentList) == 2 && call.ArgumentList[0].IsString() && call.ArgumentList[1].IsString() {
+				if privs, ok := pm.state.GetPrivs(call.Argument(0).String(), call.Argument(1).String()) ; ok {
+					if val, err := pm.js.ToValue(privs) ; err == nil {
+						return val
+					}
+				}
+			}
+			return otto.FalseValue()
 		},
 	}
 	pm.js.Set("IRC", bridge)

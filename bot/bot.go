@@ -4,6 +4,7 @@ import (
 	"github.com/darkliquid/go-ircevent"
 	"github.com/darkliquid/leader1/config"
 	"github.com/darkliquid/leader1/plugins"
+	"github.com/darkliquid/leader1/state"
 	"net"
 	"time"
 	"log"
@@ -14,7 +15,7 @@ type Bot struct {
 	conn  *irc.Connection
 	cfg   *config.Settings
 	pm    *plugins.PluginManager
-	state *StateTracker
+	state *state.StateTracker
 }
 
 func (bot *Bot) Quit() {
@@ -22,7 +23,6 @@ func (bot *Bot) Quit() {
 }
 
 func (bot *Bot) Connect() error {
-	bot.InitStateTracking()
 	bot.InitCallbacks()
 	// Connect
 	if bot.cfg.Irc.Port != "" {
@@ -32,14 +32,24 @@ func (bot *Bot) Connect() error {
 }
 
 func (bot *Bot) InitCallbacks() error {
+	// Drop nick handling standardd callbacks (we will be using our own)
+	bot.conn.ClearCallback("433")
+
+	// Setup state tracker
+	bot.state.InitStateCallbacks()
+
 	// Handle built-in commands
 	bot.conn.AddCallback("PRIVMSG", bot.RunBuiltinCommands)
 
-	// Callback dispatcher for plugin callbacks
-	bot.conn.AddCallback("*", bot.pm.RunCallbacks)
+	// Handle built-in callbacks
+	bot.conn.AddCallback("433",  bot.ReclaimNick)  // Reclaim stolen nicks
+	bot.conn.AddCallback("JOIN", bot.AutoVoice)    // Autovoice people
+	bot.conn.AddCallback("001",  bot.SetBotState)  // Setup bot state
+	bot.conn.AddCallback("477",  bot.JoinChannels) // Try to re-join channels
+	bot.conn.AddCallback("001",  bot.JoinChannels) // Try to join channels on connect
 
-	// Callback dispatcher for plugin commands
-	bot.conn.AddCallback("PRIVMSG", bot.pm.RunCommands)
+	// Setup plugin callbacks
+	bot.pm.InitPluginCallbacks()
 
 	return nil
 }
@@ -79,13 +89,15 @@ func New(cfg *config.Settings) (*Bot, error) {
 		cfg:  cfg,
 		conn: client,
 	}
-	bot.pm = plugins.New(cfg, client)
 
-	// Load the plugins
-	bot.pm.LoadPlugins()
+	// Setup state tracker
+	bot.state = state.New(cfg, client)
 
-	// Init the JS Execution environment hooks
-	bot.pm.InitIRCJSBridge()
+	// Setup plugin manager
+	bot.pm = plugins.New(cfg, client, bot.state)
+
+	// Boot up the plugin js environment
+	bot.pm.InitJS()
 
 	return bot, nil
 }

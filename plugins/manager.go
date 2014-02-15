@@ -3,6 +3,7 @@ package plugins
 import (
 	"github.com/darkliquid/go-ircevent"
 	"github.com/darkliquid/leader1/config"
+	"github.com/darkliquid/leader1/state"
 	"github.com/robertkrimen/otto"
 	"io/ioutil"
 	"log"
@@ -18,6 +19,7 @@ type PluginManager struct {
 	js      *otto.Otto
 	cfg     *config.Settings
 	conn    *irc.Connection
+	state   *state.StateTracker
 }
 
 // Walker func
@@ -42,13 +44,6 @@ func (pm *PluginManager) traversePluginDir(path string, info os.FileInfo, err er
 }
 
 func (pm *PluginManager) LoadPlugins() {
-	// Ditch existing plugins by redeclaring
-	pm.plugins = make(map[string]*Plugin)
-	// Init js env now (no need for it until we load plugins!)
-	pm.js = otto.New()
-	// Force a GC
-	runtime.GC()
-
 	_, err := os.Stat(pm.cfg.Irc.PluginsDir)
 	if err == nil {
 		// Go through each plugin file and load it
@@ -135,7 +130,7 @@ func (pm *PluginManager) LoadPlugin(path string) error {
 	return nil
 }
 
-func (pm *PluginManager) RunCallbacks(event *irc.Event) {
+func (pm *PluginManager) runCallbacks(event *irc.Event) {
 	pm.log.Printf("Looking for plugin callbacks for event `%s`...\n", event.Code)
 	for name, plugin := range pm.plugins {
 		if pm.cfg.Irc.Debug || pm.cfg.Debug {
@@ -145,7 +140,7 @@ func (pm *PluginManager) RunCallbacks(event *irc.Event) {
 	}
 }
 
-func (pm *PluginManager) RunCommands(event *irc.Event) {
+func (pm *PluginManager) runCommands(event *irc.Event) {
 	for name, plugin := range pm.plugins {
 		if pm.cfg.Irc.Debug || pm.cfg.Debug {
 			pm.log.Printf("Dispatching event `%s` to plugin `%s` commands\n", event.Code, name)
@@ -157,11 +152,55 @@ func (pm *PluginManager) RunCommands(event *irc.Event) {
 	}
 }
 
-func New(cfg *config.Settings, conn *irc.Connection) *PluginManager {
+func (pm *PluginManager) InitPluginCallbacks() {
+	// Callback dispatcher for plugin callbacks
+	pm.conn.AddCallback("*", pm.runCallbacks)
+
+	// Callback dispatcher for plugin commands
+	pm.conn.AddCallback("PRIVMSG", pm.runCommands)
+}
+
+func (pm *PluginManager) InitJS() {
+	// Initialise plugins / ditch existing plugins by redeclaring
+	pm.plugins = make(map[string]*Plugin)
+	
+	// Init js env / redeclare to bin old env
+	pm.js = otto.New()
+
+	// Force a GC incase we are doing a redeclare
+	runtime.GC()
+
+	// Setup the JS config access (we do this before loading plugins, incase plugins use the config for init)
+	pm.InitConfigJSBridge()
+
+	// Load the plugins
+	pm.LoadPlugins()
+
+	// Init the JS Execution environment hooks. Do this after loading since as 
+	pm.InitIRCJSBridge()
+	pm.InitUtilsJSBridge()
+}
+
+func (pm *PluginManager) CommandHelp() map[string]string {
+	var commands map[string]string = make(map[string]string, 0)
+	for _, plugin := range pm.plugins {
+		for name, help := range plugin.CommandHelp() {
+			// Since we don't dispatch to plugins after first match
+			// don't bother listing additionals here either
+			if _, ok := commands[name] ; !ok {
+				commands[name] = help
+			}
+		}
+	}
+	return commands
+}
+
+func New(cfg *config.Settings, conn *irc.Connection, state *state.StateTracker) *PluginManager {
 	return &PluginManager{
 		plugins: make(map[string]*Plugin),
 		log:     log.New(os.Stdout, "[plugins] ", log.LstdFlags),
 		cfg:     cfg,
 		conn:    conn,
+		state:   state,
 	}
 }

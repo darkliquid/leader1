@@ -1,4 +1,4 @@
-package bot
+package state
 
 import (
 	"strconv"
@@ -93,4 +93,9 @@ func (channel *Channel) ParseModes(modes string, modeargs ...string) {
 			}
 		}
 	}
+}
+
+func (channel *Channel) HasNick(nick string) (hasNick bool) {
+	_, hasNick = channel.Nicks[nick]
+	return
 }
