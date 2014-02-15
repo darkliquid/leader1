@@ -1,16 +1,18 @@
 package plugins
 
 import (
+	"errors"
 	"github.com/darkliquid/go-ircevent"
 	"github.com/darkliquid/leader1/config"
 	"github.com/darkliquid/leader1/state"
+	"github.com/darkliquid/leader1/utils"
 	"github.com/robertkrimen/otto"
 	"io/ioutil"
 	"log"
 	"os"
 	"path/filepath"
-	"strings"
 	"runtime"
+	"strings"
 )
 
 type PluginManager struct {
@@ -163,7 +165,7 @@ func (pm *PluginManager) InitPluginCallbacks() {
 func (pm *PluginManager) InitJS() {
 	// Initialise plugins / ditch existing plugins by redeclaring
 	pm.plugins = make(map[string]*Plugin)
-	
+
 	// Init js env / redeclare to bin old env
 	pm.js = otto.New()
 
@@ -176,7 +178,7 @@ func (pm *PluginManager) InitJS() {
 	// Load the plugins
 	pm.LoadPlugins()
 
-	// Init the JS Execution environment hooks. Do this after loading since as 
+	// Init the JS Execution environment hooks. Do this after loading since as
 	pm.InitIRCJSBridge()
 	pm.InitUtilsJSBridge()
 }
@@ -187,12 +189,50 @@ func (pm *PluginManager) CommandHelp() map[string]string {
 		for name, help := range plugin.CommandHelp() {
 			// Since we don't dispatch to plugins after first match
 			// don't bother listing additionals here either
-			if _, ok := commands[name] ; !ok {
+			if _, ok := commands[name]; !ok {
 				commands[name] = help
 			}
 		}
 	}
 	return commands
+}
+
+func (pm *PluginManager) ImportPlugin(who, url, name string, overwrite bool) (err error) {
+	pm.log.Printf("%s is importing a plugin from: %s, called %s.js. Overwrite is %v\n", who, url, name, overwrite)
+	var plugin string
+	if plugin, err = utils.GetPage(url); err == nil {
+		js := otto.New()
+		js.Set("RegisterCommand", func(call otto.FunctionCall) otto.Value { return otto.UndefinedValue() })
+		js.Set("RegisterCallback", func(call otto.FunctionCall) otto.Value { return otto.UndefinedValue() })
+		js.Set("log", func(call otto.FunctionCall) otto.Value { return otto.UndefinedValue() })
+		_, err = js.Run(plugin)
+		if err == nil {
+			js = nil
+			_, err = os.Stat(pm.cfg.Irc.PluginsDir)
+			if err == nil {
+				file := filepath.Join(pm.cfg.Irc.PluginsDir, name+".js")
+				_, err = os.Stat(file)
+				if err != nil && os.IsNotExist(err) {
+					// Write plugin to file
+					err = ioutil.WriteFile(file, []byte(plugin), 0644)
+				} else if err == nil && overwrite {
+					err = ioutil.WriteFile(file, []byte(plugin), 0644)
+				} else if err == nil {
+					err = errors.New("Will not overwrite existing plugin")
+				}
+			} else if os.IsNotExist(err) {
+				pm.log.Printf("Plugin directory does not exist: %s\n", err)
+			} else {
+				pm.log.Printf("Error accessing plugin directory: %s\n", err)
+			}
+		}
+	}
+	if err != nil {
+		pm.log.Printf("Error importing plugin: %s\n", err)
+		return
+	}
+	pm.InitJS()
+	return nil
 }
 
 func New(cfg *config.Settings, conn *irc.Connection, state *state.StateTracker) *PluginManager {

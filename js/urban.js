@@ -5,5 +5,9 @@ RegisterCommand("urban", function(){
 		nick = this.event.nick,
 		url = "http://www.urbandictionary.com/define.php?term=" + encodeURIComponent(args.join(" "));
 	
-	IRC.Privmsg(source, nick+": Urban dictionary says - " + url);
+	if(args.length > 0) {
+		IRC.Privmsg(source, nick+": Urban dictionary says - " + url);	
+	} else {
+		IRC.Privmsg(source, nick+": usage is - !urban [query]");
+	}
 }, "returns an urban dictionary search url for the given query");

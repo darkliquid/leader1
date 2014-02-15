@@ -101,7 +101,7 @@ func (p *Plugin) eventToValue(event *irc.Event) otto.Value {
 	obj.Set("user", event.User)
 	obj.Set("args", utils.SliceToJavascriptArray(p.js, event.Arguments))
 	obj.Set("message", event.Message())
-	return obj.Value()	
+	return obj.Value()
 }
 
 func (p *Plugin) jsEnv(event *irc.Event) otto.Value {

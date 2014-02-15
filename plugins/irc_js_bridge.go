@@ -1,9 +1,9 @@
 package plugins
 
 import (
-	"github.com/robertkrimen/otto"
 	"github.com/darkliquid/leader1/state"
 	"github.com/darkliquid/leader1/utils"
+	"github.com/robertkrimen/otto"
 )
 
 type pmIRCJSBridge struct {
@@ -163,8 +163,8 @@ func (pm *PluginManager) InitIRCJSBridge() {
 		},
 		GetPrivs: func(call otto.FunctionCall) otto.Value {
 			if len(call.ArgumentList) == 2 && call.ArgumentList[0].IsString() && call.ArgumentList[1].IsString() {
-				if privs, ok := pm.state.GetPrivs(call.Argument(0).String(), call.Argument(1).String()) ; ok {
-					if val, err := pm.js.ToValue(privs) ; err == nil {
+				if privs, ok := pm.state.GetPrivs(call.Argument(0).String(), call.Argument(1).String()); ok {
+					if val, err := pm.js.ToValue(privs); err == nil {
 						return val
 					}
 				}

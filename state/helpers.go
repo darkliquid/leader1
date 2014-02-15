@@ -8,7 +8,7 @@ func (st *StateTracker) associate(nick, channel string) *ChannelPrivileges {
 	if channelObj == nil {
 		// Create a channel object
 		channelObj = &Channel{
-			Name: channel,
+			Name:  channel,
 			Nicks: make(map[string]*ChannelPrivileges),
 		}
 
@@ -24,7 +24,7 @@ func (st *StateTracker) associate(nick, channel string) *ChannelPrivileges {
 	if nickObj == nil {
 		// Create a nick object
 		nickObj = &Nick{
-			Nick: nick,
+			Nick:     nick,
 			Channels: make(map[string]*ChannelPrivileges),
 		}
 
@@ -46,7 +46,7 @@ func (st *StateTracker) disassociate(nick, channel string) {
 		delete(channelObj.Nicks, nick)
 	}
 	if nickObj, ok := st.nicks[nick]; ok {
-		delete(nickObj.Channels, channel)	
+		delete(nickObj.Channels, channel)
 	}
 }
 
@@ -82,7 +82,7 @@ func (st *StateTracker) setTopic(channel, topic string) {
 	if channelObj == nil {
 		// Create a channel object
 		channelObj = &Channel{
-			Name: channel,
+			Name:  channel,
 			Nicks: make(map[string]*ChannelPrivileges),
 		}
 

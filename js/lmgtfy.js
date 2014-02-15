@@ -5,5 +5,9 @@ RegisterCommand("lmgtfy", function(){
 		nick = this.event.nick,
 		url = "http://lmgtfy.com/?q=" + encodeURIComponent(args.join(" "));
 	
-	IRC.Privmsg(source, nick+": Let me google that for you - " + url);
+	if(args.length > 0) {
+		IRC.Privmsg(source, nick+": Let me google that for you - " + url);	
+	} else {
+		IRC.Privmsg(source, nick+": usage is - !lmgtfy [query]");
+	}
 }, "returns a 'let me google that for you' search url for the given query");

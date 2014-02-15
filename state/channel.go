@@ -23,7 +23,7 @@ type ChannelModes struct {
 
 type ChannelPrivileges struct {
 	// MODE +q, +a, +o, +h, +v
-	Owner, Admin, Op, HalfOp, Voice bool	
+	Owner, Admin, Op, HalfOp, Voice bool
 }
 
 type Channel struct {

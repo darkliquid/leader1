@@ -1,10 +1,11 @@
 package bot
 
-import(
-	"github.com/darkliquid/go-ircevent"
-	"strings"
+import (
 	"fmt"
+	"github.com/darkliquid/go-ircevent"
 	"github.com/darkliquid/leader1/utils"
+	"sort"
+	"strings"
 	"time"
 )
 
@@ -21,14 +22,14 @@ func (bot *Bot) RunBuiltinCommands(event *irc.Event) {
 
 	// Get the current channel privileges for the nick sending this command
 	privs, ok := bot.state.GetPrivs(event.Arguments[0], event.Nick)
-	
+
 	// Commands must be run by known users
 	if ok {
 		switch {
 		case command == "!reload":
 			if privs.Owner || privs.Admin || privs.Op {
-				utils.IRCAction(bot.conn, event.Arguments[0], "reloads it's plugins")
 				bot.pm.InitJS()
+				utils.IRCAction(bot.conn, event.Arguments[0], "has reloaded it's plugins")
 			} else {
 				utils.IRCAction(bot.conn, event.Arguments[0], fmt.Sprintf("slaps %s's hands away from the op only controls", event.Nick))
 			}
@@ -38,13 +39,27 @@ func (bot *Bot) RunBuiltinCommands(event *irc.Event) {
 			if privs.Owner || privs.Admin || privs.Op {
 				bot.Quit()
 			} else {
-				utils.IRCAction(bot.conn, event.Arguments[0], fmt.Sprint("slaps %s's hands away from the op only controls", event.Nick))
+				utils.IRCAction(bot.conn, event.Arguments[0], fmt.Sprintf("slaps %s's hands away from the op only controls", event.Nick))
 			}
 		case command == "!help":
 			if len(args) == 0 {
 				bot.ShowCommandList(event.Arguments[0], event.Nick)
 			} else {
 				bot.ShowCommandHelp(event.Arguments[0], event.Nick, args[0])
+			}
+		case command == "!import" && len(args) >= 2 && bot.cfg.Irc.StaffChannel == event.Arguments[0]:
+			if privs.Owner {
+				overwrite := false
+				if len(args) == 3 {
+					overwrite = args[2] == "overwrite"
+				}
+				if err := bot.pm.ImportPlugin(event.Nick, args[0], args[1], overwrite); err != nil {
+					bot.conn.Privmsg(bot.cfg.Irc.StaffChannel, fmt.Sprintf("ALERT: %s tried to use !import with %s and got this error: %s", event.Nick, args[0], err.Error()))
+				} else {
+					bot.conn.Privmsg(bot.cfg.Irc.StaffChannel, fmt.Sprintf("ALERT: %s successfully used !import with %s", event.Nick, args[0]))
+				}
+			} else {
+				utils.IRCAction(bot.conn, event.Arguments[0], fmt.Sprintf("slaps %s's hands away from the op only controls", event.Nick))
 			}
 		}
 	}
@@ -99,11 +114,11 @@ func (bot *Bot) SetBotState(event *irc.Event) {
 func (bot *Bot) JoinChannels(event *irc.Event) {
 	time.Sleep(time.Second) // Wait a second before we bother
 
-	if _, ok := bot.state.GetPrivs(bot.cfg.Irc.NormalChannel, bot.state.Me().Nick) ; !ok {
+	if _, ok := bot.state.GetPrivs(bot.cfg.Irc.NormalChannel, bot.state.Me().Nick); !ok {
 		bot.conn.Join(bot.cfg.Irc.NormalChannel)
 	}
 
-	if _, ok := bot.state.GetPrivs(bot.cfg.Irc.StaffChannel, bot.state.Me().Nick) ; !ok {
+	if _, ok := bot.state.GetPrivs(bot.cfg.Irc.StaffChannel, bot.state.Me().Nick); !ok {
 		bot.conn.Join(bot.cfg.Irc.StaffChannel)
 	}
 }
@@ -111,11 +126,12 @@ func (bot *Bot) JoinChannels(event *irc.Event) {
 // Print out the commands available
 func (bot *Bot) ShowCommandList(source, nick string) {
 	var commands []string = make([]string, 0)
-	commands = append(commands, "!reload", "!ping", "!quit", "!help")
+	commands = append(commands, "!reload", "!ping", "!quit", "!help", "!import")
 
 	for cmd, _ := range bot.pm.CommandHelp() {
 		commands = append(commands, cmd)
 	}
+	sort.Strings(commands)
 	bot.conn.Privmsg(source, fmt.Sprintf("%s: available commands are - %s", nick, strings.Join(commands, ", ")))
 }
 
@@ -126,13 +142,15 @@ func (bot *Bot) ShowCommandHelp(source, nick, cmd string) {
 	case cmd == "!ping":
 		message = fmt.Sprintf("makes `%s` reply with PONG!", bot.state.Me().Nick)
 	case cmd == "!reload":
-		message = "reloads the bots plugins and config file"
+		message = "reloads the plugins"
 	case cmd == "!quit":
 		message = fmt.Sprintf("makes `%s` quit IRC", bot.state.Me().Nick)
 	case cmd == "!help":
 		message = "shows this message, smart ass"
+	case cmd == "!import":
+		message = "call like !import [url] [name] [overwrite], imports the plugin at [url] into [name].js and loads it into the bot. Will not overwrite unless [overwrite] is set to 'overwrite'"
 	default:
-		if help, ok := bot.pm.CommandHelp()[cmd] ; ok {
+		if help, ok := bot.pm.CommandHelp()[cmd]; ok {
 			message = help
 		}
 	}

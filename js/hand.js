@@ -21,5 +21,5 @@ RegisterCommand("hand", function() {
 			return
 		}
 	}
-	IRC.Privmsg(target, nick + ": you what now? Use !hand [object] to [person] OR !hand me [object]")
+	IRC.Privmsg(target, nick + ": usage - !hand [object] to [recipient] OR !hand me [object]")
 }, "!hand [object] to [recipient] or !hand me [object] to have the bot hand an item to someone")

@@ -8,5 +8,7 @@ RegisterCommand("invite", function() {
 
 	if(privs && (privs.Owner || privs.Admin || privs.Op) && source == cfg.Irc.StaffChannel) {
 		IRC.Invite(args[0], cfg.Irc.StaffChannel)
+	} else {
+		IRC.Action(source, "slaps "+nick+"'s hands away from the op only controls")
 	}
 }, "invites a user to the staff channel");

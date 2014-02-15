@@ -19,7 +19,7 @@ func (st *StateTracker) Me() *Nick {
 
 // Return string slice of known nicks
 func (st *StateTracker) Nicks() (nicks []string) {
-	nicks = make([]string,0)
+	nicks = make([]string, 0)
 	for nick, _ := range st.nicks {
 		nicks = append(nicks, nick)
 	}
@@ -28,7 +28,7 @@ func (st *StateTracker) Nicks() (nicks []string) {
 
 // Return string slice of known channels
 func (st *StateTracker) Channels() (channels []string) {
-	channels = make([]string,0)
+	channels = make([]string, 0)
 	for channel, _ := range st.channels {
 		channels = append(channels, channel)
 	}
@@ -38,7 +38,7 @@ func (st *StateTracker) Channels() (channels []string) {
 // Returns a ChannelPrivs object for the given nick.channel
 func (st *StateTracker) GetPrivs(c, n string) (privs *ChannelPrivileges, ok bool) {
 	var channel *Channel
-	if channel, ok = st.channels[c] ; ok {
+	if channel, ok = st.channels[c]; ok {
 		privs, ok = channel.Nicks[n]
 	}
 	return

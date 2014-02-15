@@ -1,9 +1,9 @@
 package state
 
 import (
-	"sync"
 	"github.com/darkliquid/go-ircevent"
 	"github.com/darkliquid/leader1/config"
+	"sync"
 )
 
 type StateTracker struct {
@@ -22,7 +22,7 @@ func New(cfg *config.Settings, conn *irc.Connection) *StateTracker {
 		cfg:      cfg,
 	}
 	state.nicks[cfg.Irc.Nick] = &Nick{
-		Nick: cfg.Irc.Nick,
+		Nick:     cfg.Irc.Nick,
 		Channels: make(map[string]*ChannelPrivileges),
 	}
 	return state

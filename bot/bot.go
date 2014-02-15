@@ -3,12 +3,13 @@ package bot
 import (
 	"github.com/darkliquid/go-ircevent"
 	"github.com/darkliquid/leader1/config"
+	"github.com/darkliquid/leader1/database"
 	"github.com/darkliquid/leader1/plugins"
 	"github.com/darkliquid/leader1/state"
-	"net"
-	"time"
 	"log"
+	"net"
 	"os"
+	"time"
 )
 
 type Bot struct {
@@ -42,11 +43,11 @@ func (bot *Bot) InitCallbacks() error {
 	bot.conn.AddCallback("PRIVMSG", bot.RunBuiltinCommands)
 
 	// Handle built-in callbacks
-	bot.conn.AddCallback("433",  bot.ReclaimNick)  // Reclaim stolen nicks
-	bot.conn.AddCallback("JOIN", bot.AutoVoice)    // Autovoice people
-	bot.conn.AddCallback("001",  bot.SetBotState)  // Setup bot state
-	bot.conn.AddCallback("477",  bot.JoinChannels) // Try to re-join channels
-	bot.conn.AddCallback("001",  bot.JoinChannels) // Try to join channels on connect
+	bot.conn.AddCallback("433", bot.ReclaimNick)  // Reclaim stolen nicks
+	bot.conn.AddCallback("JOIN", bot.AutoVoice)   // Autovoice people
+	bot.conn.AddCallback("001", bot.SetBotState)  // Setup bot state
+	bot.conn.AddCallback("477", bot.JoinChannels) // Try to re-join channels
+	bot.conn.AddCallback("001", bot.JoinChannels) // Try to join channels on connect
 
 	// Setup plugin callbacks
 	bot.pm.InitPluginCallbacks()
@@ -98,6 +99,9 @@ func New(cfg *config.Settings) (*Bot, error) {
 
 	// Boot up the plugin js environment
 	bot.pm.InitJS()
+
+	// Setup the database
+	database.Config(&cfg.Db)
 
 	return bot, nil
 }
