@@ -93,7 +93,9 @@ func (pm *PluginManager) LoadPlugin(path string) error {
 			f := call.ArgumentList[1]
 			help := call.ArgumentList[2].String()
 			pm.plugins[name].SetCommand(command, f, help)
-			pm.log.Printf("Registered command `%s` from plugin `%s`\n", command, name)
+			if pm.cfg.Irc.Debug || pm.cfg.Debug {
+				pm.log.Printf("Registered command `%s` from plugin `%s`\n", command, name)
+			}
 			return otto.TrueValue()
 		} else {
 			return otto.FalseValue()
@@ -107,7 +109,9 @@ func (pm *PluginManager) LoadPlugin(path string) error {
 			callbackName := call.ArgumentList[1].String()
 			f := call.ArgumentList[2]
 			pm.plugins[name].AddCallback(eventCode, callbackName, f)
-			pm.log.Printf("Registered callback `%s` from plugin `%s`\n", callbackName, name)
+			if pm.cfg.Irc.Debug || pm.cfg.Debug {
+				pm.log.Printf("Registered callback `%s` from plugin `%s`\n", callbackName, name)
+			}
 			return otto.TrueValue()
 		} else {
 			return otto.FalseValue()
@@ -133,7 +137,9 @@ func (pm *PluginManager) LoadPlugin(path string) error {
 }
 
 func (pm *PluginManager) runCallbacks(event *irc.Event) {
-	pm.log.Printf("Looking for plugin callbacks for event `%s`...\n", event.Code)
+	if pm.cfg.Irc.Debug || pm.cfg.Debug {
+		pm.log.Printf("Looking for plugin callbacks for event `%s`...\n", event.Code)
+	}
 	for name, plugin := range pm.plugins {
 		if pm.cfg.Irc.Debug || pm.cfg.Debug {
 			pm.log.Printf("Dispatching event `%s` to plugin `%s` callbacks\n", event.Code, name)

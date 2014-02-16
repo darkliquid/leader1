@@ -3,8 +3,8 @@ package bot
 import (
 	"fmt"
 	"github.com/darkliquid/go-ircevent"
-	"github.com/darkliquid/leader1/utils"
 	"github.com/darkliquid/leader1/debug"
+	"github.com/darkliquid/leader1/utils"
 	"sort"
 	"strings"
 	"time"

@@ -1,16 +1,16 @@
 package debug
 
 import (
-	"runtime"
+	"fmt"
+	"github.com/darkliquid/leader1/state"
+	"html/template"
+	"log"
 	"net"
 	"net/http"
 	_ "net/http/pprof"
-	"fmt"
-	"html/template"
-	"sync"
-	"log"
 	"os"
-	"github.com/darkliquid/leader1/state"
+	"runtime"
+	"sync"
 )
 
 var memTemplate string = `<html><head><title>Memstats</title></head><body>
@@ -229,12 +229,12 @@ func StartDebugServer() (string, bool) {
 
 	status = "starting"
 	running = true
-	l, _ := net.Listen("tcp",":0")
+	l, _ := net.Listen("tcp", ":0")
 	port = l.Addr().String()
 	logger.Printf("Started debug server on port %s", port)
 
 	listen = &listener{
-		Listener: l,
+		Listener:  l,
 		waitGroup: &waiter,
 	}
 
@@ -256,7 +256,7 @@ func DebugServerStatus() string {
 	if port == "" {
 		return status
 	}
-	return status + " ("+port+")"
+	return status + " (" + port + ")"
 }
 
 func StopDebugServer() {

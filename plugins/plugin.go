@@ -24,7 +24,9 @@ type Plugin struct {
 
 func (p *Plugin) SetCommand(name string, command otto.Value, help string) {
 	if _, ok := p.commands[name]; ok {
-		p.log.Printf("Warning: Command `%s` was already defined. Overriding...", name)
+		if p.cfg.Irc.Debug || p.cfg.Debug {
+			p.log.Printf("Warning: Command `%s` was already defined. Overriding...", name)
+		}
 	}
 	wrappedCommand := func(env otto.Value) {
 		_, err := command.Call(env)
