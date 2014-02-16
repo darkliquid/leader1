@@ -181,6 +181,7 @@ func (pm *PluginManager) InitJS() {
 	// Init the JS Execution environment hooks. Do this after loading since as
 	pm.InitIRCJSBridge()
 	pm.InitUtilsJSBridge()
+	pm.InitDebugJSBridge()
 }
 
 func (pm *PluginManager) CommandHelp() map[string]string {

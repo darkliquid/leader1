@@ -61,6 +61,17 @@ func (p *Plugin) RunCallbacks(event *irc.Event) {
 			callback.function(p.jsEnv(event))
 		}
 	}
+
+	// Handle wildcard callbacks
+	if callbacks, ok := p.callbacks["*"]; ok {
+		if p.cfg.Irc.Debug || p.cfg.Debug {
+			p.log.Printf("Wildcard %v (%v) >> %#v\n", event.Code, len(callbacks), event)
+		}
+
+		for _, callback := range callbacks {
+			callback.function(p.jsEnv(event))
+		}
+	}
 }
 
 func (p *Plugin) RunCommand(event *irc.Event) bool {

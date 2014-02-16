@@ -95,16 +95,16 @@ func (st *StateTracker) whoisReply(event *irc.Event) {
 
 func (st *StateTracker) modeReply(event *irc.Event) {
 	st.mutex.Lock()
-	if channel, ok := st.channels[event.Arguments[1]]; ok {
-		channel.ParseModes(event.Arguments[2], event.Arguments[3:]...)
+	if channel, ok := st.channels[event.Arguments[0]]; ok {
+		channel.ParseModes(event.Arguments[1], event.Arguments[2:]...)
 	}
 	st.mutex.Unlock()
 }
 
 func (st *StateTracker) topicReply(event *irc.Event) {
 	st.mutex.Lock()
-	if channel := st.channels[event.Arguments[1]]; channel != nil {
-		st.setTopic(channel.Name, event.Arguments[2])
+	if channel := st.channels[event.Arguments[0]]; channel != nil {
+		st.setTopic(channel.Name, event.Arguments[1])
 	}
 	st.mutex.Unlock()
 }
@@ -167,10 +167,10 @@ func (st *StateTracker) namesReply(event *irc.Event) {
 
 func (st *StateTracker) whoisReplySSL(event *irc.Event) {
 	st.mutex.Lock()
-	if nick, ok := st.nicks[event.Arguments[1]]; ok && nick != st.GetNick(st.conn.GetNick()) {
-		nick.User = event.Arguments[2]
-		nick.Host = event.Arguments[3]
-		nick.Name = event.Arguments[5]
+	if nick, ok := st.nicks[event.Arguments[0]]; ok && nick != st.GetNick(st.conn.GetNick()) {
+		nick.User = event.Arguments[1]
+		nick.Host = event.Arguments[2]
+		nick.Name = event.Arguments[4]
 		nick.Modes.SSL = true
 	}
 	st.mutex.Unlock()
@@ -184,7 +184,7 @@ func (st *StateTracker) InitStateCallbacks() {
 	st.conn.AddCallback("QUIT", st.quitted)
 	st.conn.AddCallback("TOPIC", st.topicSet)
 	st.conn.AddCallback("311", st.whoisReply)
-	st.conn.AddCallback("324", st.modeReply)
+	st.conn.AddCallback("MODE", st.modeReply)
 	st.conn.AddCallback("332", st.topicReply)
 	st.conn.AddCallback("352", st.whoReply)
 	st.conn.AddCallback("353", st.namesReply)

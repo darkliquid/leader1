@@ -6,6 +6,7 @@ import (
 	"github.com/darkliquid/leader1/database"
 	"github.com/darkliquid/leader1/plugins"
 	"github.com/darkliquid/leader1/state"
+	"github.com/darkliquid/leader1/debug"
 	"log"
 	"net"
 	"os"
@@ -78,6 +79,9 @@ func New(cfg *config.Settings) (*Bot, error) {
 		// Set client pingfreq duration to configured amount in seconds
 		client.PingFreq = time.Duration(cfg.Irc.PingFreq) * time.Second
 	}
+	if cfg.Irc.Debug || cfg.Debug {
+		client.VerboseCallbackHandler = true
+	}
 
 	// Optionally, enable SSL
 	client.UseTLS = cfg.Irc.Ssl
@@ -93,6 +97,9 @@ func New(cfg *config.Settings) (*Bot, error) {
 
 	// Setup state tracker
 	bot.state = state.New(cfg, client)
+
+	// Give debug a window into the state handler
+	debug.SetState(bot.state)
 
 	// Setup plugin manager
 	bot.pm = plugins.New(cfg, client, bot.state)

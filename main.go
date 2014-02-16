@@ -30,9 +30,10 @@ func main() {
 
 	go func() {
 		sig := <-trap
-		close(trap)
+		signal.Stop(trap)
 		fmt.Printf("Caught: %s - quitting\n", sig)
 		client.Quit()
+		close(trap)
 		quit <- true
 	}()
 

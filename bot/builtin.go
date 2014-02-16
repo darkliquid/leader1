@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"github.com/darkliquid/go-ircevent"
 	"github.com/darkliquid/leader1/utils"
+	"github.com/darkliquid/leader1/debug"
 	"sort"
 	"strings"
 	"time"
@@ -24,43 +25,63 @@ func (bot *Bot) RunBuiltinCommands(event *irc.Event) {
 	privs, ok := bot.state.GetPrivs(event.Arguments[0], event.Nick)
 
 	// Commands must be run by known users
-	if ok {
-		switch {
-		case command == "!reload":
-			if privs.Owner || privs.Admin || privs.Op {
-				bot.pm.InitJS()
-				utils.IRCAction(bot.conn, event.Arguments[0], "has reloaded its plugins")
-			} else {
-				utils.IRCAction(bot.conn, event.Arguments[0], fmt.Sprintf("slaps %s's hands away from the op only controls", event.Nick))
+	switch {
+	case ok && command == "!reload":
+		if privs.Owner || privs.Admin || privs.Op {
+			bot.pm.InitJS()
+			utils.IRCAction(bot.conn, event.Arguments[0], "has reloaded its plugins")
+		} else {
+			utils.IRCAction(bot.conn, event.Arguments[0], fmt.Sprintf("slaps %s's hands away from the op only controls", event.Nick))
+		}
+	case command == "!ping":
+		bot.conn.Privmsg(event.Arguments[0], fmt.Sprintf("%s: PONG!", event.Nick))
+	case ok && command == "!quit":
+		if privs.Owner || privs.Admin || privs.Op {
+			bot.Quit()
+		} else {
+			utils.IRCAction(bot.conn, event.Arguments[0], fmt.Sprintf("slaps %s's hands away from the op only controls", event.Nick))
+		}
+	case command == "!help":
+		if len(args) == 0 {
+			bot.ShowCommandList(event.Arguments[0], event.Nick)
+		} else {
+			bot.ShowCommandHelp(event.Arguments[0], event.Nick, args[0])
+		}
+	case ok && command == "!import" && len(args) >= 2 && bot.cfg.Irc.StaffChannel == event.Arguments[0]:
+		if privs.Owner {
+			overwrite := false
+			if len(args) == 3 {
+				overwrite = args[2] == "overwrite"
 			}
-		case command == "!ping":
-			bot.conn.Privmsg(event.Arguments[0], fmt.Sprintf("%s: PONG!", event.Nick))
-		case command == "!quit":
-			if privs.Owner || privs.Admin || privs.Op {
-				bot.Quit()
+			if err := bot.pm.ImportPlugin(event.Nick, args[0], args[1], overwrite); err != nil {
+				bot.conn.Privmsg(bot.cfg.Irc.StaffChannel, fmt.Sprintf("ALERT: %s tried to use !import with %s and got this error: %s", event.Nick, args[0], err.Error()))
 			} else {
-				utils.IRCAction(bot.conn, event.Arguments[0], fmt.Sprintf("slaps %s's hands away from the op only controls", event.Nick))
+				bot.conn.Privmsg(bot.cfg.Irc.StaffChannel, fmt.Sprintf("ALERT: %s successfully used !import with %s", event.Nick, args[0]))
 			}
-		case command == "!help":
-			if len(args) == 0 {
-				bot.ShowCommandList(event.Arguments[0], event.Nick)
-			} else {
-				bot.ShowCommandHelp(event.Arguments[0], event.Nick, args[0])
-			}
-		case command == "!import" && len(args) >= 2 && bot.cfg.Irc.StaffChannel == event.Arguments[0]:
-			if privs.Owner {
-				overwrite := false
-				if len(args) == 3 {
-					overwrite = args[2] == "overwrite"
-				}
-				if err := bot.pm.ImportPlugin(event.Nick, args[0], args[1], overwrite); err != nil {
-					bot.conn.Privmsg(bot.cfg.Irc.StaffChannel, fmt.Sprintf("ALERT: %s tried to use !import with %s and got this error: %s", event.Nick, args[0], err.Error()))
+		} else {
+			utils.IRCAction(bot.conn, event.Arguments[0], fmt.Sprintf("slaps %s's hands away from the op only controls", event.Nick))
+		}
+	case ok && command == "!debug" && bot.cfg.Irc.StaffChannel == event.Arguments[0]:
+		if privs.Owner || privs.Admin || privs.Op {
+			switch {
+			case len(args) > 0 && args[0] == "on":
+				port, alreadyRunning := debug.StartDebugServer()
+				if alreadyRunning {
+					bot.conn.Privmsg(bot.cfg.Irc.StaffChannel, fmt.Sprintf("%s: Debug server running on port %s", event.Nick, port))
 				} else {
-					bot.conn.Privmsg(bot.cfg.Irc.StaffChannel, fmt.Sprintf("ALERT: %s successfully used !import with %s", event.Nick, args[0]))
+					bot.conn.Privmsg(bot.cfg.Irc.StaffChannel, fmt.Sprintf("%s: Debug server started on port %s", event.Nick, port))
 				}
-			} else {
-				utils.IRCAction(bot.conn, event.Arguments[0], fmt.Sprintf("slaps %s's hands away from the op only controls", event.Nick))
+			case len(args) > 0 && args[0] == "off":
+				debug.StopDebugServer()
+				bot.conn.Privmsg(bot.cfg.Irc.StaffChannel, fmt.Sprintf("%s: Debug server stopped", event.Nick))
+			case len(args) > 0 && args[0] == "status":
+				status := debug.DebugServerStatus()
+				bot.conn.Privmsg(bot.cfg.Irc.StaffChannel, fmt.Sprintf("%s: Debug server is %s", event.Nick, status))
+			default:
+				bot.conn.Privmsg(bot.cfg.Irc.StaffChannel, fmt.Sprintf("%s: usage - !debug [on|off]", event.Nick))
 			}
+		} else {
+			utils.IRCAction(bot.conn, event.Arguments[0], fmt.Sprintf("slaps %s's hands away from the op only controls", event.Nick))
 		}
 	}
 }
@@ -126,7 +147,7 @@ func (bot *Bot) JoinChannels(event *irc.Event) {
 // Print out the commands available
 func (bot *Bot) ShowCommandList(source, nick string) {
 	var commands []string = make([]string, 0)
-	commands = append(commands, "!reload", "!ping", "!quit", "!help", "!import")
+	commands = append(commands, "!reload", "!ping", "!quit", "!help", "!import", "!debug")
 
 	for cmd, _ := range bot.pm.CommandHelp() {
 		commands = append(commands, cmd)
@@ -138,17 +159,19 @@ func (bot *Bot) ShowCommandList(source, nick string) {
 // Print out the commands available
 func (bot *Bot) ShowCommandHelp(source, nick, cmd string) {
 	message := "unknown command, run `!help` to see what commands are available."
-	switch {
-	case cmd == "!ping":
+	switch cmd {
+	case "!ping":
 		message = fmt.Sprintf("makes `%s` reply with PONG!", bot.state.Me().Nick)
-	case cmd == "!reload":
+	case "!reload":
 		message = "reloads the plugins"
-	case cmd == "!quit":
+	case "!quit":
 		message = fmt.Sprintf("makes `%s` quit IRC", bot.state.Me().Nick)
-	case cmd == "!help":
+	case "!help":
 		message = "shows this message, smart ass"
-	case cmd == "!import":
+	case "!import":
 		message = "call like !import [url] [name] [overwrite], imports the plugin at [url] into [name].js and loads it into the bot. Will not overwrite unless [overwrite] is set to 'overwrite'"
+	case "!debug":
+		message = "starts/stops debugging server for inspecting the bot"
 	default:
 		if help, ok := bot.pm.CommandHelp()[cmd]; ok {
 			message = help
