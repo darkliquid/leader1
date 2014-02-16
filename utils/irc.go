@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"github.com/darkliquid/go-ircevent"
 	"strings"
+	"time"
 )
 
 func IRCAction(conn *irc.Connection, channel, action string) {
@@ -32,4 +33,23 @@ func IRCTopic(conn *irc.Connection, channel string, topic ...string) {
 		msg = " :" + msg
 	}
 	conn.SendRawf("TOPIC %s%s", channel, msg)
+}
+
+func IRCRedispatch(conn *irc.Connection, code, raw, nick, host, source, user string, arguments ...string) {
+	// This is here to throttle redispatches
+	time.Sleep(time.Second)
+
+	// Build synthetic event
+	event := &irc.Event{
+		Code:      code,
+		Raw:       raw,
+		Nick:      nick,
+		Host:      host,
+		Source:    source,
+		User:      user,
+		Arguments: arguments,
+	}
+
+	// Dispatch it
+	conn.RunCallbacks(event)
 }

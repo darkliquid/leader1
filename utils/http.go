@@ -169,5 +169,7 @@ func ExtractTitle(url string) (title string, err error) {
 	} else {
 		title = resp.Status // Lets just return the status text for non-successful responses
 	}
+
+	title = strings.TrimSpace(title)
 	return
 }

@@ -9,7 +9,7 @@ import (
 type pmIRCJSBridge struct {
 	Nick, GetNick, SendRaw, Privmsg, Notice, Action,
 	Part, Join, Who, Whois, Mode, Nicks, Channels,
-	Topic, Away, Invite, Oper, GetPrivs func(call otto.FunctionCall) otto.Value
+	Topic, Away, Invite, Oper, GetPrivs, Redispatch func(call otto.FunctionCall) otto.Value
 }
 
 func stateNickToValue(nick *state.Nick) (val otto.Value) {
@@ -168,6 +168,29 @@ func (pm *PluginManager) InitIRCJSBridge() {
 						return val
 					}
 				}
+			}
+			return otto.FalseValue()
+		},
+		Redispatch: func(call otto.FunctionCall) otto.Value {
+			if len(call.ArgumentList) >= 7 {
+				arguments := make([]string, 0)
+				for _, arg := range call.ArgumentList {
+					if !arg.IsString() {
+						return otto.FalseValue()
+					}
+					arguments = append(arguments, arg.String())
+				}
+				utils.IRCRedispatch(
+					pm.conn,
+					arguments[0],
+					arguments[1],
+					arguments[2],
+					arguments[3],
+					arguments[4],
+					arguments[5],
+					arguments[6:]...,
+				)
+				return otto.TrueValue()
 			}
 			return otto.FalseValue()
 		},
