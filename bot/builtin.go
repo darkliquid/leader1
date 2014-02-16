@@ -71,9 +71,11 @@ func (bot *Bot) RunBuiltinCommands(event *irc.Event) {
 				} else {
 					bot.conn.Privmsg(bot.cfg.Irc.StaffChannel, fmt.Sprintf("%s: Debug server started on port %s", event.Nick, port))
 				}
+				bot.cfg.Debug = true
 			case len(args) > 0 && args[0] == "off":
 				debug.StopDebugServer()
 				bot.conn.Privmsg(bot.cfg.Irc.StaffChannel, fmt.Sprintf("%s: Debug server stopped", event.Nick))
+				bot.cfg.Debug = false
 			case len(args) > 0 && args[0] == "status":
 				status := debug.DebugServerStatus()
 				bot.conn.Privmsg(bot.cfg.Irc.StaffChannel, fmt.Sprintf("%s: Debug server is %s", event.Nick, status))
@@ -153,7 +155,7 @@ func (bot *Bot) ShowCommandList(source, nick string) {
 		commands = append(commands, cmd)
 	}
 	sort.Strings(commands)
-	bot.conn.Privmsg(source, fmt.Sprintf("%s: available commands are - %s", nick, strings.Join(commands, ", ")))
+	bot.conn.Privmsg(source, fmt.Sprintf("%s: available commands are: %s", nick, strings.Join(commands, ", ")))
 }
 
 // Print out the commands available
