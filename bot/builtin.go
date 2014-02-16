@@ -29,7 +29,7 @@ func (bot *Bot) RunBuiltinCommands(event *irc.Event) {
 		case command == "!reload":
 			if privs.Owner || privs.Admin || privs.Op {
 				bot.pm.InitJS()
-				utils.IRCAction(bot.conn, event.Arguments[0], "has reloaded it's plugins")
+				utils.IRCAction(bot.conn, event.Arguments[0], "has reloaded its plugins")
 			} else {
 				utils.IRCAction(bot.conn, event.Arguments[0], fmt.Sprintf("slaps %s's hands away from the op only controls", event.Nick))
 			}

@@ -41,4 +41,5 @@ func main() {
 	close(quit)
 
 	fmt.Println("Quitting...")
+	os.Exit(0)
 }
