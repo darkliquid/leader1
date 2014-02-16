@@ -82,6 +82,7 @@ func (bot *Bot) RunBuiltinCommands(event *irc.Event) {
 			default:
 				bot.conn.Privmsg(bot.cfg.Irc.StaffChannel, fmt.Sprintf("%s: usage - !debug [on|off]", event.Nick))
 			}
+			bot.conn.VerboseCallbackHandler = bot.cfg.Debug
 		} else {
 			utils.IRCAction(bot.conn, event.Arguments[0], fmt.Sprintf("slaps %s's hands away from the op only controls", event.Nick))
 		}
