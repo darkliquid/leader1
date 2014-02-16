@@ -29,17 +29,20 @@ func main() {
 	signal.Notify(trap, os.Interrupt, syscall.SIGTERM)
 
 	go func() {
-		sig := <-trap
+		select {
+		case sig := <-trap:
+			fmt.Printf("Caught: %s - quitting\n", sig)
+			client.Quit()
+			quit <- true
+		case <- client.Quitted:
+			fmt.Println("Client quitted out\n")
+			quit <- true
+		}
 		signal.Stop(trap)
-		fmt.Printf("Caught: %s - quitting\n", sig)
-		client.Quit()
-		close(trap)
-		quit <- true
 	}()
 
 	// Block here for quit channel
 	<-quit
-	close(quit)
 
 	fmt.Println("Quitting...")
 	os.Exit(0)

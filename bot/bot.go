@@ -14,14 +14,16 @@ import (
 )
 
 type Bot struct {
-	conn  *irc.Connection
-	cfg   *config.Settings
-	pm    *plugins.PluginManager
-	state *state.StateTracker
+	conn    *irc.Connection
+	cfg     *config.Settings
+	pm      *plugins.PluginManager
+	state   *state.StateTracker
+	Quitted chan bool
 }
 
 func (bot *Bot) Quit() {
 	bot.conn.Quit()
+	bot.Quitted<-true
 }
 
 func (bot *Bot) Connect() error {
@@ -91,8 +93,9 @@ func New(cfg *config.Settings) (*Bot, error) {
 
 	// Make bot instance
 	bot := &Bot{
-		cfg:  cfg,
-		conn: client,
+		cfg:     cfg,
+		conn:    client,
+		Quitted: make(chan bool, 1),
 	}
 
 	// Setup state tracker
