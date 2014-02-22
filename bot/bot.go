@@ -46,11 +46,14 @@ func (bot *Bot) InitCallbacks() error {
 	bot.conn.AddCallback("PRIVMSG", bot.RunBuiltinCommands)
 
 	// Handle built-in callbacks
-	bot.conn.AddCallback("433", bot.ReclaimNick)  // Reclaim stolen nicks
-	bot.conn.AddCallback("JOIN", bot.AutoVoice)   // Autovoice people
-	bot.conn.AddCallback("001", bot.SetBotState)  // Setup bot state
-	bot.conn.AddCallback("477", bot.JoinChannels) // Try to re-join channels
-	bot.conn.AddCallback("001", bot.JoinChannels) // Try to join channels on connect
+	bot.conn.AddCallback("433", bot.ReclaimNick)   // Reclaim stolen nicks
+	bot.conn.AddCallback("JOIN", bot.AutoVoice)    // Autovoice people
+	bot.conn.AddCallback("001", bot.SetBotState)   // Setup bot state
+	bot.conn.AddCallback("477", bot.JoinChannels)  // Try to re-join channels
+	bot.conn.AddCallback("001", bot.JoinChannels)  // Try to join channels on connect
+	bot.conn.AddCallback("KICK", bot.JoinChannels) // Rejoin on kick
+	bot.conn.AddCallback("PING", bot.JoinChannels) // Periodically try and rejoin if not already joined
+	bot.conn.AddCallback("PONG", bot.JoinChannels) // Periodically try and rejoin if not already joined
 
 	// Setup plugin callbacks
 	bot.pm.InitPluginCallbacks()

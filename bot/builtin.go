@@ -26,6 +26,9 @@ func (bot *Bot) RunBuiltinCommands(event *irc.Event) {
 
 	// Commands must be run by known users
 	switch {
+	case command == "!rejoin" && event.Arguments[0] == bot.conn.GetNick():
+		bot.conn.Join(bot.cfg.Irc.NormalChannel)
+		bot.conn.Join(bot.cfg.Irc.StaffChannel)
 	case ok && command == "!reload":
 		if privs.Owner || privs.Admin || privs.Op {
 			bot.pm.InitJS()
@@ -38,6 +41,12 @@ func (bot *Bot) RunBuiltinCommands(event *irc.Event) {
 	case ok && command == "!quit":
 		if privs.Owner || privs.Admin || privs.Op {
 			bot.Quit()
+		} else {
+			utils.IRCAction(bot.conn, event.Arguments[0], fmt.Sprintf("slaps %s's hands away from the op only controls", event.Nick))
+		}
+	case ok && command == "!voice":
+		if privs.Owner || privs.Admin || privs.Op {
+			bot.VoiceAll(event)
 		} else {
 			utils.IRCAction(bot.conn, event.Arguments[0], fmt.Sprintf("slaps %s's hands away from the op only controls", event.Nick))
 		}
@@ -105,15 +114,46 @@ func (bot *Bot) AutoVoice(event *irc.Event) {
 	if bot.cfg.Irc.AutoVoice {
 		time.Sleep(time.Second) // Wait a second before we bother
 
-		privs, ok := bot.state.GetPrivs(event.Arguments[0], event.Nick)
+		privs, ok := bot.state.GetPrivs(event.Arguments[0], bot.conn.GetNick())
 
-		// No need to autovoice
-		if ok && (privs.Owner || privs.Admin || privs.Op || privs.HalfOp || privs.Voice) {
-			return
+		// Do we current have the rights for voicing people?
+		if ok && (privs.Owner || privs.Admin || privs.Op || privs.HalfOp) {
+			privs, ok = bot.state.GetPrivs(event.Arguments[0], event.Nick)
+
+			// No need to autovoice
+			if ok && (privs.Owner || privs.Admin || privs.Op || privs.HalfOp || privs.Voice) {
+				return
+			}
+
+			// Set mode
+			bot.conn.Mode(event.Arguments[0], fmt.Sprintf("+v %s", event.Nick))
+		} else {
+			// We can't grant voice yet
+			bot.conn.Log.Printf("I don't have the privileges to grant voice in channel %s", event.Arguments[0])
 		}
+	}
+}
 
-		// Set mode
-		bot.conn.Mode(event.Arguments[0], fmt.Sprintf("+v %s", event.Nick))
+// Give voice to all users that don't have it yet
+func (bot *Bot) VoiceAll(event *irc.Event) {
+	privs, ok := bot.state.GetPrivs(event.Arguments[0], bot.conn.GetNick())
+
+	// Do we current have the rights for voicing people?
+	if ok && (privs.Owner || privs.Admin || privs.Op || privs.HalfOp) {
+		if channel := bot.state.GetChannel(event.Arguments[0]) ; channel != nil {
+			for nick, privs := range channel.Nicks {
+				// No need to autovoice
+				if privs != nil && (privs.Owner || privs.Admin || privs.Op || privs.HalfOp || privs.Voice) {
+					continue
+				}
+
+				// Set mode
+				bot.conn.Mode(event.Arguments[0], fmt.Sprintf("+v %s", nick))
+			}
+		}
+	} else {
+		// We can't grant voice yet
+		bot.conn.Log.Printf("I don't have the privileges to grant voice in channel %s", event.Arguments[0])
 	}
 }
 
@@ -138,11 +178,15 @@ func (bot *Bot) SetBotState(event *irc.Event) {
 func (bot *Bot) JoinChannels(event *irc.Event) {
 	time.Sleep(time.Second) // Wait a second before we bother
 
-	if _, ok := bot.state.GetPrivs(bot.cfg.Irc.NormalChannel, bot.state.Me().Nick); !ok {
+	// Was I kicked?
+	kickedFromNormal := event.Code == "KICK" && event.Arguments[1] == bot.state.Me().Nick && event.Arguments[0] == bot.cfg.Irc.NormalChannel
+	kickedFromStaff := event.Code == "KICK" && event.Arguments[1] == bot.state.Me().Nick && event.Arguments[0] == bot.cfg.Irc.StaffChannel
+
+	if _, ok := bot.state.GetPrivs(bot.cfg.Irc.NormalChannel, bot.state.Me().Nick); !ok || kickedFromNormal {
 		bot.conn.Join(bot.cfg.Irc.NormalChannel)
 	}
 
-	if _, ok := bot.state.GetPrivs(bot.cfg.Irc.StaffChannel, bot.state.Me().Nick); !ok {
+	if _, ok := bot.state.GetPrivs(bot.cfg.Irc.StaffChannel, bot.state.Me().Nick); !ok || kickedFromStaff {
 		bot.conn.Join(bot.cfg.Irc.StaffChannel)
 	}
 }
@@ -150,7 +194,7 @@ func (bot *Bot) JoinChannels(event *irc.Event) {
 // Print out the commands available
 func (bot *Bot) ShowCommandList(source, nick string) {
 	var commands []string = make([]string, 0)
-	commands = append(commands, "!reload", "!ping", "!quit", "!help", "!import", "!debug")
+	commands = append(commands, "!reload", "!ping", "!quit", "!help", "!import", "!debug", "!voice", "!rejoin")
 
 	for cmd, _ := range bot.pm.CommandHelp() {
 		commands = append(commands, cmd)
@@ -171,10 +215,14 @@ func (bot *Bot) ShowCommandHelp(source, nick, cmd string) {
 		message = fmt.Sprintf("makes `%s` quit IRC", bot.state.Me().Nick)
 	case "!help":
 		message = "shows this message, smart ass"
+	case "!voice":
+		message = "grants voice to everyone in the channel who doesn't already have it"
 	case "!import":
 		message = "call like !import [url] [name] [overwrite], imports the plugin at [url] into [name].js and loads it into the bot. Will not overwrite unless [overwrite] is set to 'overwrite'"
 	case "!debug":
 		message = "starts/stops debugging server for inspecting the bot"
+	case "!rejoin":
+		message = "makes the bot rejoin it's standard channels. Only works via PM."
 	default:
 		if help, ok := bot.pm.CommandHelp()[cmd]; ok {
 			message = help
