@@ -3,8 +3,8 @@ package config
 import (
 	"encoding/json"
 	"flag"
-	"github.com/fluffle/golog/logging"
 	"io/ioutil"
+	"log"
 	"os"
 	"path/filepath"
 )
@@ -19,39 +19,43 @@ type IrcSettings struct {
 	NormalChannel string `json:"normal_channel"`
 	StaffChannel  string `json:"staff_channel"`
 	MaxFailures   int
-	Timeout       int
+	Timeout       uint
+	KeepAlive     uint `json:"keep_alive"`
+	PingFreq      uint `json:"ping_frequency"`
 	AutoVoice     bool
+	Version       string
+	Debug         bool
+	PluginsDir    string `json:"plugin_dir"`
 }
 
 type DbSettings struct {
-	DSN string
+	DSN          string
 	MaxOpenConns int
 	MaxIdleConns int
 }
 
 type StreamSettings struct {
-    StatsURL string `json:"stats_url"`
-    StatsUser string `json:"stats_user"`
-    StatsPass string `json:"stats_pass"`
+	StatsURL  string `json:"stats_url"`
+	StatsUser string `json:"stats_user"`
+	StatsPass string `json:"stats_pass"`
 }
 
 type Settings struct {
-	Irc IrcSettings
-	Db  DbSettings
+	Irc    IrcSettings
+	Db     DbSettings
 	Stream StreamSettings
+	Debug  bool
 }
 
-var Config Settings
-
-func Load() {
+func Load() *Settings {
+	log := log.New(os.Stdout, "[config] ", log.LstdFlags)
 	// Gets the current executable path for use a cfgfile path
 	cwd, err := os.Getwd()
 
 	// Bail out if the executable can not be found
 	if err != nil {
 		// Init here since we haven't done so yet
-		logging.InitFromFlags()
-		logging.Fatal("Can not find current working directory!")
+		log.Fatal("Can not find current working directory!")
 	}
 
 	// Default config path
@@ -65,48 +69,40 @@ func Load() {
 		flag.Parse()
 	}
 
-	// Need to init logging engine
-	logging.InitFromFlags()
-
-	logging.Info("Loading...")
+	log.Println("Loading...")
 
 	// Load config file
 	file, err := ioutil.ReadFile(config_path)
 
 	// Bail out if reading the config file errored
 	if err != nil {
-		logging.Fatal("Couldn't read config file")
+		log.Fatal("Couldn't read config file")
 	}
 
-	logging.Info("Reading config file")
+	log.Println("Reading config file")
 
 	// Unmarshal json config file into our config structure
-	err = json.Unmarshal(file, &Config)
+	var cfg Settings
+	err = json.Unmarshal(file, &cfg)
 
 	// Bail out if the demarshalling fails
 	if err != nil {
-		logging.Fatal("Couldn't parse config!")
-	}
-
-	// Set a default timeout of 30
-	if Config.Irc.Timeout == 0 {
-		Config.Irc.Timeout = 30
-	}
-
-	// Set a default Max Failures
-	if Config.Irc.MaxFailures == 0 {
-		Config.Irc.MaxFailures = 10
+		log.Fatalln("Couldn't parse config!")
 	}
 
 	// Set default Max/Idle DB Conns
-	if Config.Db.MaxOpenConns == 0 {
-		Config.Db.MaxOpenConns = 5
+	if cfg.Db.MaxOpenConns == 0 {
+		cfg.Db.MaxOpenConns = 5
 	}
-	if Config.Db.MaxIdleConns == 0 {
-		Config.Db.MaxIdleConns = 5
+	if cfg.Db.MaxIdleConns == 0 {
+		cfg.Db.MaxIdleConns = 5
 	}
 
-	logging.Info("Loaded config")
+	if cfg.Irc.PluginsDir == "" {
+		cfg.Irc.PluginsDir = filepath.Join(cwd, "plugins")
+	}
 
-	return
+	log.Println("Loaded config")
+
+	return &cfg
 }

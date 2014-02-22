@@ -2,13 +2,23 @@ package database
 
 import (
 	"database/sql"
-	"fmt"
 	"github.com/darkliquid/leader1/config"
-	"github.com/fluffle/golog/logging"
 	_ "github.com/go-sql-driver/mysql"
+	"log"
+	"os"
 )
 
 var db *sql.DB
+var logger *log.Logger
+var cfg *config.DbSettings
+
+func init() {
+	logger = log.New(os.Stdout, "[database] ", log.LstdFlags)
+}
+
+func Config(dbCfg *config.DbSettings) {
+	cfg = dbCfg
+}
 
 func DB() (*sql.DB, error) {
 	var err error
@@ -18,7 +28,7 @@ func DB() (*sql.DB, error) {
 		db, err = openDB()
 	} else if err = db.Ping(); err != nil {
 		db.Close()
-		logging.Error(fmt.Sprintf("MySQL (2) error: %s", err.Error()))
+		logger.Printf("MySQL (2) error: %s", err.Error())
 		db, err = openDB()
 		return db, err
 	}
@@ -26,25 +36,25 @@ func DB() (*sql.DB, error) {
 }
 
 func openDB() (*sql.DB, error) {
-	logging.Info("MySQL: setting up new connection")
+	logger.Printf("MySQL: setting up new connection")
 
-	db, err := sql.Open("mysql", config.Config.Db.DSN)
+	db, err := sql.Open("mysql", cfg.DSN)
 	if err != nil {
-		logging.Error(fmt.Sprintf("MySQL (1) error: %s", err.Error()))
+		logger.Printf("MySQL (1) error: %s", err.Error())
 		return db, err
 	}
 
 	// Set connection limits
-	db.SetMaxOpenConns(config.Config.Db.MaxOpenConns)
-	db.SetMaxIdleConns(config.Config.Db.MaxIdleConns)
+	db.SetMaxOpenConns(cfg.MaxOpenConns)
+	db.SetMaxIdleConns(cfg.MaxIdleConns)
 
 	if err = db.Ping(); err != nil {
 		db.Close()
-		logging.Error(fmt.Sprintf("MySQL (2) error: %s", err.Error()))
+		logger.Printf("MySQL (2) error: %s", err.Error())
 		return db, err
 	}
 
-	logging.Info("MySQL: connected")
+	logger.Printf("MySQL: connected")
 
 	return db, err
 }
