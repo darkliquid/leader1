@@ -8,6 +8,7 @@ import (
 	"net"
 	"strings"
 	"time"
+	"html"
 )
 
 func GetPage(url string) (string, error) {
@@ -32,6 +33,11 @@ func GetPage(url string) (string, error) {
 	if err != nil {
 		logger.Printf("Couldn't read http response body: %s", err.Error())
 		return "", err
+	}
+	
+	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
+		logger.Printf("HTTP response code: %d", resp.StatusCode)
+		err = errors.New(fmt.Sprintf("Bad HTTP response code: %d", resp.StatusCode))
 	}
 
 	return string(body), err
@@ -60,6 +66,11 @@ func GetPageWithAuth(url string, user string, pass string) (string, error) {
 	if err != nil {
 		logger.Printf("Couldn't read http response body: %s", err.Error())
 		return "", err
+	}
+	
+	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
+		logger.Printf("HTTP response code: %d", resp.StatusCode)
+		err = errors.New(fmt.Sprintf("Bad HTTP response code: %d", resp.StatusCode))
 	}
 
 	return string(body), err
@@ -170,6 +181,6 @@ func ExtractTitle(url string) (title string, err error) {
 		title = resp.Status // Lets just return the status text for non-successful responses
 	}
 
-	title = strings.TrimSpace(title)
+	title = html.UnescapeString(strings.TrimSpace(title))
 	return
 }
