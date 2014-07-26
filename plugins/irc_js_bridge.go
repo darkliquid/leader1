@@ -29,7 +29,7 @@ func (pm *PluginManager) InitIRCJSBridge() {
 		GetNick: func(call otto.FunctionCall) otto.Value {
 			val, err := otto.ToValue(pm.conn.GetNick())
 			if err != nil {
-				return otto.UndefinedValue()
+				return otto.NullValue()
 			}
 			return val
 		},
